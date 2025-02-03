@@ -1,6 +1,7 @@
 <div id="top"></div>
 
 <!-- PROJECT SHIELDS -->
+
 [![MIT License][license-shield]][license-url]
 
 <!-- PROJECT LOGO -->
@@ -40,27 +41,29 @@
 </details>
 
 <!-- ABOUT THE PROJECT -->
+
 ## About The Project
 
 Nyaa Magnet Helper is a browser extension that adds convenient functionality to Nyaa torrent sites. It allows users to select multiple magnet links using checkboxes and copy them all at once, making it easier to manage multiple downloads.
 
 ### Built With
 
-* JavaScript
-* CSS
-* Chrome Extensions API
+- JavaScript
+- CSS
+- Chrome Extensions API
 
 ### Features
 
-* Adds checkboxes next to each torrent entry
-* "Copy Selected" button to copy only checked magnet links
-* "Copy All" button to copy all magnet links on the page
-* "Clear Selection" button to uncheck all boxes
-* Selection counter showing number of selected items
-* Toast notifications for user feedback
-* Supports multiple Nyaa mirror domains
+- Adds checkboxes next to each torrent entry
+- "Copy Selected" button to copy only checked magnet links
+- "Copy All" button to copy all magnet links on the page
+- "Clear Selection" button to uncheck all boxes
+- Selection counter showing number of selected items
+- Toast notifications for user feedback
+- Supports multiple Nyaa mirror domains
 
 <!-- GETTING STARTED -->
+
 ## Getting Started
 
 To install the extension in your browser, follow these steps.
@@ -73,6 +76,7 @@ To install the extension in your browser, follow these steps.
 4. Click "Load unpacked" and select the extension directory
 
 <!-- USAGE -->
+
 ### Usage
 
 1. Visit any supported Nyaa torrent site
@@ -84,20 +88,18 @@ To install the extension in your browser, follow these steps.
 
 The extension works on the following domains:
 
-* nyaa.si
-* nyaa.eu
-* nya.iss.one
-* nyaa.ink
-* nyaa.land
-* nyaa.digital
-* ny.iss.one
-
+- nyaa.si
+- nyaa.eu
+- nya.iss.one
+- nyaa.ink
+- nyaa.land
+- nyaa.digital
+- ny.iss.one
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- CONTRIBUTING -->
+
 ## Contributing
 
 Any contributions you make are **greatly appreciated**.
@@ -113,18 +115,16 @@ Don't forget to give the project a star! Thanks again!
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- CONTACT -->
+
 ## Contact
 
 Twitter [@Arad119](https://twitter.com/Arad119) - Email contact@arad119.com
@@ -133,10 +133,9 @@ Project Link: [https://github.com/Arad119/Dathost-API](https://github.com/Arad11
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [contributors-shield]: https://img.shields.io/github/contributors/Arad119/Dathost-API.svg?style=for-the-badge
 [contributors-url]: https://github.com/Arad119/Dathost-API/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/Arad119/Dathost-API.svg?style=for-the-badge
