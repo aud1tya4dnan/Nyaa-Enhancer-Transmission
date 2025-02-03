@@ -26,11 +26,6 @@
 
   <p align="center">
     A browser extension that enhances Nyaa torrent sites with checkbox functionality to easily select and copy multiple magnet links at once.
-    <br />
-    <br />
-    <a href="https://github.com/Arad119/Nyaa-Magnet-Helper/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/Arad119/Nyaa-Magnet-Helper/issues">Request Feature</a>
   </p>
 </div>
 
@@ -52,9 +47,7 @@
         <li><a href="#usage">Usage</a></li>
       </ul>
     </li>
-    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
@@ -124,38 +117,11 @@ The extension works on the following domains:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-<!-- CONTRIBUTING -->
-
-## Contributing
-
-Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 <!-- LICENSE -->
 
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-<!-- CONTACT -->
-
-## Contact
-
-Twitter [@Arad119](https://twitter.com/Arad119) - Email contact@arad119.com
-
-Project Link: [https://github.com/Arad119/Nyaa-Magnet-Helper](https://github.com/Arad119/Nyaa-Magnet-Helper)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
