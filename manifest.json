@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Nyaa Magnet Helper",
+  "version": "1.0",
+  "description": "Adds checkbox functionality to select and copy multiple magnet links from Nyaa",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.nyaa.si/*",
+        "*://*.nyaa.eu/*",
+        "*://*.nya.iss.one/*",
+        "*://*.nyaa.ink/*",
+        "*://*.nyaa.land/*",
+        "*://*.nyaa.digital/*",
+        "*://*.ny.iss.one/*"
+      ],
+      "css": ["content.css"],
+      "js": ["content.js"]
+    }
+  ],
+  "permissions": ["clipboardWrite"]
+}

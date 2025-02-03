@@ -1,0 +1,54 @@
+.magnet-checkbox-column {
+  width: 50px;
+}
+
+.magnet-checkbox {
+  cursor: pointer;
+}
+
+.copy-magnets-button {
+  margin: 10px;
+  padding: 5px 10px;
+  background-color: #337ab7;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.copy-magnets-button:hover {
+  background-color: #286090;
+}
+
+.magnet-notification-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.magnet-notification {
+  padding: 15px 25px;
+  color: white;
+  border-radius: 4px;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.magnet-notification.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.clear-button {
+  background-color: #d9534f !important;
+}
+
+.clear-button:hover {
+  background-color: #c9302c !important;
+}
