@@ -91,6 +91,13 @@ To install the extension in your browser, follow these steps.
 
 ### Installation
 
+**Download from Chrome Web Store (Recommended way):**  
+<a href="https://chromewebstore.google.com/detail/nyaa-magnet-helper/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
+ <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
+</a>    
+  
+  
+**Download extension files locally:**
 1. Download the extension files or clone the repository
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
