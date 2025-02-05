@@ -430,19 +430,23 @@ async function downloadTorrentsAsZip(torrents, zipName) {
     // Create an array of promises for parallel downloads
     const fetchPromises = torrents.map(async (torrent) => {
       try {
-        // Download the torrent file
+        // Download the torrent file with explicit response type
         const response = await fetch(torrent.url);
-        if (!response.ok)
+        if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Get the blob with explicit type
         const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
 
         // Use appropriate filename based on user preference
         const filename = useAnimeTitle
           ? torrent.filename + ".torrent"
           : torrent.url.split("/").pop();
 
-        // Add file to ZIP
-        zip.file(filename, blob);
+        // Add file to ZIP using arrayBuffer
+        zip.file(filename, arrayBuffer);
 
         // Update progress notification
         completedDownloads++;
