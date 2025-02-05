@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Nyaa Magnet Helper",
-  "version": "1.0",
-  "description": "Adds checkbox functionality to select and copy multiple magnet links from Nyaa",
+  "name": "Nyaa Enhancer",
+  "version": "1.2.0",
+  "description": "Enhances Nyaa with batch magnet copying, torrent file downloading, and customizable filename options.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -20,8 +20,14 @@
         "*://*.ny.iss.one/*"
       ],
       "css": ["content.css"],
-      "js": ["content.js"]
+      "js": ["assets/jszip.min.js", "content.js"]
     }
   ],
-  "permissions": ["clipboardWrite"]
+  "permissions": ["clipboardWrite", "downloads", "storage"],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/jszip.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

@@ -52,3 +52,11 @@
 .clear-button:hover {
   background-color: #c9302c !important;
 }
+
+.download-button {
+  background-color: #5cb85c !important;
+}
+
+.download-button:hover {
+  background-color: #449d44 !important;
+}
