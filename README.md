@@ -104,7 +104,7 @@ To install the extension in your browser, follow these steps.
   
 
 **Firefox Add-Ons Store:**  
-<a href="https://addons.mozilla.org/en-US/firefox/addon/nyaa-magnet-helper/" target="_blank">
+<a href="https://addons.mozilla.org/en-US/firefox/addon/nyaa-enhancer/" target="_blank">
  <img src="https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png" alt="Firefox Add-Ons Store" height="50px" >
 </a>    
   
