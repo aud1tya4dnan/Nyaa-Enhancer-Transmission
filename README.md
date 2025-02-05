@@ -91,6 +91,25 @@ To install the extension in your browser, follow these steps.
 
 ### Installation
 
+**Chrome Web Store:**  
+<a href="https://chromewebstore.google.com/detail/nyaa-magnet-helper/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
+ <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
+</a>    
+  
+
+**Firefox Add-Ons Store:**  
+<a href="https://addons.mozilla.org/en-US/firefox/addon/nyaa-magnet-helper/" target="_blank">
+ <img src="https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png" alt="Firefox Add-Ons Store" height="50px" >
+</a>    
+  
+
+**Edge Add-Ons Store:**  
+<a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-magnet-helper/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
+ <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
+</a>    
+  
+  
+**Download extension files locally:**
 1. Download the extension files or clone the repository
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
