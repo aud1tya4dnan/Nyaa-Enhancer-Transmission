@@ -18,11 +18,11 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/Arad119/Nyaa-Magnet-Helper">
+  <a href="https://github.com/Arad119/Nyaa-Enhancer">
     <img src="images/Logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Nyaa Magnet Helper</h3>
+<h3 align="center">Nyaa Enhancer</h3>
 
   <p align="center">
     A browser extension that enhances Nyaa torrent sites with checkbox functionality to easily select and copy multiple magnet links at once.
@@ -55,15 +55,16 @@
 
 ## About The Project
 
-![Nyaa-Magnet-Helper Screenshot][product-screenshot]
+![Nyaa-Enhancer Screenshot][product-screenshot]
 
-Nyaa Magnet Helper is a browser extension that adds convenient functionality to Nyaa torrent sites. It allows users to select multiple magnet links using checkboxes and copy them all at once, making it easier to manage multiple downloads.
+Nyaa Enhancer is a browser extension that adds convenient functionality to Nyaa torrent sites. It allows users to select multiple magnet links using checkboxes and copy them all at once, making it easier to manage multiple downloads.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Built With
 
 - [Chrome Extensions API](https://developer.chrome.com/docs/extensions/reference/api)
+- [jszip](https://cdnjs.com/libraries/jszip)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -71,7 +72,7 @@ Nyaa Magnet Helper is a browser extension that adds convenient functionality to 
 
 ### Features
 
-![Nyaa-Magnet-Helper Preview][product-preview]
+![Nyaa-Enhancer Preview][product-preview]
 
 - Adds checkboxes next to each torrent entry
 - "Copy Selected" button to copy checked magnet links
@@ -98,7 +99,7 @@ To install the extension in your browser, follow these steps.
 ### Installation
 
 **Chrome Web Store (still on 1.0.0 release - 1.2.1 is currently pending, will update to 1.3.1 once 1.2.1 is approved 🤞):**  
-<a href="https://chromewebstore.google.com/detail/nyaa-magnet-helper/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
+<a href="https://chromewebstore.google.com/detail/Nyaa-Enhancer/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
 </a>    
   
@@ -110,7 +111,7 @@ To install the extension in your browser, follow these steps.
   
 
 **Edge Add-Ons Store (not up yet but according to microsoft it should be within 7 days lol):**  
-<a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-magnet-helper/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
+<a href="https://microsoftedge.microsoft.com/addons/detail/Nyaa-Enhancer/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
   
@@ -169,16 +170,16 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/Arad119/Nyaa-Magnet-Helper.svg?style=for-the-badge
-[contributors-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Arad119/Nyaa-Magnet-Helper.svg?style=for-the-badge
-[forks-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/network/members
-[stars-shield]: https://img.shields.io/github/stars/Arad119/Nyaa-Magnet-Helper.svg?style=for-the-badge
-[stars-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Arad119/Nyaa-Magnet-Helper.svg?style=for-the-badge
-[issues-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/issues
-[license-shield]: https://img.shields.io/github/license/Arad119/Nyaa-Magnet-Helper.svg?style=for-the-badge
-[license-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/Arad119/Nyaa-Enhancer.svg?style=for-the-badge
+[contributors-url]: https://github.com/Arad119/Nyaa-Enhancer/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Arad119/Nyaa-Enhancer.svg?style=for-the-badge
+[forks-url]: https://github.com/Arad119/Nyaa-Enhancer/network/members
+[stars-shield]: https://img.shields.io/github/stars/Arad119/Nyaa-Enhancer.svg?style=for-the-badge
+[stars-url]: https://github.com/Arad119/Nyaa-Enhancer/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Arad119/Nyaa-Enhancer.svg?style=for-the-badge
+[issues-url]: https://github.com/Arad119/Nyaa-Enhancer/issues
+[license-shield]: https://img.shields.io/github/license/Arad119/Nyaa-Enhancer.svg?style=for-the-badge
+[license-url]: https://github.com/Arad119/Nyaa-Enhancer/blob/master/LICENSE.txt
 [product-screenshot]: images/Program.png
 [product-preview]: images/Screenshot.png
 [popup-preview]: images/Popup.gif
