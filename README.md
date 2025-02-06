@@ -115,11 +115,18 @@ To install the extension in your browser, follow these steps.
 </a>    
   
   
-**Download extension files locally:**
-1. Download the extension files or clone the repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension directory
+**Download extension files locally (always up-to-date):**
+Chrome/Any chromium based browser (Edge, Brave etc.):
+1. Download the zipped files of the repo or clone the repository
+2. Open Chrome/Edge and navigate to `chrome://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the `src/chrome` directory
+
+Firefox:
+1. Download the zipped files of the repo or clone the repository
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on"
+4. Navigate to the `src/firefox` directory and select any file
 
 ### Usage
 
@@ -127,11 +134,18 @@ To install the extension in your browser, follow these steps.
 2. Use the checkboxes to select desired torrents
 3. Click "Copy Selected" to copy selected magnet links
 4. Click "Copy All" to copy all magnet links
-5. Use "Clear Selection" to uncheck all boxes
-6. Watch for toast notifications confirming actions
+5. Click "Download Selected" to download selected torrent files
+6. Click "Download All" to download all torrent files
+7. Use "Clear Selection" to uncheck all boxes
+
+![Extension Popup Preview][popup-preview]
+
+The extension includes several customizable settings in the popup menu:
+- Use display name as filename: Uses anime titles instead of torrent IDs
+- Combine downloads as ZIP: Packages multiple torrents into a single ZIP file
+- Show changelogs: Toggle visibility of update notifications
 
 The extension works on the following domains:
-
 - nyaa.si
 - nyaa.eu
 - nya.iss.one
@@ -139,6 +153,8 @@ The extension works on the following domains:
 - nyaa.land
 - nyaa.digital
 - ny.iss.one
+
+Look for the green "On" badge in your browser toolbar to confirm the extension is active for the current site.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -165,3 +181,4 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 [license-url]: https://github.com/Arad119/Nyaa-Magnet-Helper/blob/master/LICENSE.txt
 [product-screenshot]: images/Program.png
 [product-preview]: images/Screenshot.png
+[popup-preview]: images/Popup.gif
