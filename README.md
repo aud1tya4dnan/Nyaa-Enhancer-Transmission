@@ -111,12 +111,13 @@ To install the extension in your browser, follow these steps.
   
 
 **Edge Add-Ons Store (not up yet but according to microsoft it should be within 7 days lol):**  
-<a href="https://microsoftedge.microsoft.com/addons/detail/Nyaa-Enhancer/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
+<a href="" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
   
   
-**Download extension files locally (always up-to-date):**
+**Download extension files locally (always up-to-date):**  
+  
 Chrome/Any chromium based browser (Edge, Brave etc.):
 1. Download the zipped files of the repo or clone the repository
 2. Open Chrome/Edge and navigate to `chrome://extensions/`
