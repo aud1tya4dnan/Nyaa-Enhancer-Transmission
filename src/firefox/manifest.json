@@ -1,0 +1,53 @@
+{
+  "manifest_version": 2,
+  "name": "Nyaa Enhancer",
+  "version": "1.3.1",
+  "description": "Enhances Nyaa with batch magnet copying, torrent file downloading, and customizable filename options.",
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [
+    "clipboardWrite",
+    "downloads",
+    "storage",
+    "activeTab",
+    "*://*.nyaa.si/*",
+    "*://*.nyaa.eu/*",
+    "*://*.nya.iss.one/*",
+    "*://*.nyaa.ink/*",
+    "*://*.nyaa.land/*",
+    "*://*.nyaa.digital/*",
+    "*://*.ny.iss.one/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.nyaa.si/*",
+        "*://*.nyaa.eu/*",
+        "*://*.nya.iss.one/*",
+        "*://*.nyaa.ink/*",
+        "*://*.nyaa.land/*",
+        "*://*.nyaa.digital/*",
+        "*://*.ny.iss.one/*"
+      ],
+      "css": ["content.css"],
+      "js": ["assets/jszip.min.js", "content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    "assets/jszip.min.js"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{c5d1e29f-8044-41be-8af5-ef30718de438}"
+    }
+  }
+}

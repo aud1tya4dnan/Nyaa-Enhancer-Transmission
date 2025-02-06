@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="popup.css" />
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <div class="nav-container">
+      <button class="nav-button active" data-tab="settings">Settings</button>
+      <button class="nav-button" data-tab="about">About</button>
+    </div>
+
+    <div class="content-container">
+      <div id="settings" class="tab-content active">
+        <div class="setting-item">
+          <span>Use display name as filename</span>
+          <div class="toggle-container">
+            <button class="toggle-button" data-toggle="displayNameToggle">
+              <span class="toggle-indicator"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <span>Combine downloads as ZIP</span>
+          <div class="toggle-container">
+            <button class="toggle-button" data-toggle="zipToggle">
+              <span class="toggle-indicator"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <span>Show changelogs</span>
+          <div class="toggle-container">
+            <button class="toggle-button" data-toggle="changelogToggle">
+              <span class="toggle-indicator"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="about" class="tab-content">
+        <div class="version-container">
+          <span class="version-label">🚀 Version</span>
+          <span class="version-number"></span>
+        </div>
+        <p class="about-text">
+          This browser extension was made by Arad119. Support the project at
+          <a href="https://github.com/Arad119/Nyaa-Enhancer/" target="_blank">
+            https://github.com/Arad119/Nyaa-Enhancer/
+          </a>
+        </p>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
