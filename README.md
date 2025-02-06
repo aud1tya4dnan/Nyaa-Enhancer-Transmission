@@ -73,13 +73,19 @@ Nyaa Magnet Helper is a browser extension that adds convenient functionality to 
 
 ![Nyaa-Magnet-Helper Preview][product-preview]
 
-- Adds checkboxes next to each torrent entry.
-- "Copy Selected" button to copy only checked magnet links.
-- "Copy All" button to copy all magnet links on the page.
-- "Clear Selection" button to uncheck all boxes.
-- Selection counter showing number of selected items.
-- Toast notifications for user feedback.
-- Supports multiple Nyaa mirror domains.
+- Adds checkboxes next to each torrent entry
+- "Copy Selected" button to copy checked magnet links
+- "Copy All" button to copy all magnet links
+- "Download Selected" button to download checked torrent files
+- "Download All" button to download all torrent files
+- "Clear Selection" button to uncheck all boxes
+- Selection counter showing number of selected items
+- Toast notifications with progress tracking
+- Customizable file options:
+  - Use anime titles as torrent filenames
+  - Combine downloads into ZIP files
+- Settings sync across sessions
+- Supports multiple Nyaa mirror domains
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -98,7 +104,7 @@ To install the extension in your browser, follow these steps.
   
 
 **Firefox Add-Ons Store:**  
-<a href="https://addons.mozilla.org/en-US/firefox/addon/nyaa-magnet-helper/" target="_blank">
+<a href="https://addons.mozilla.org/en-US/firefox/addon/nyaa-enhancer/" target="_blank">
  <img src="https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png" alt="Firefox Add-Ons Store" height="50px" >
 </a>    
   
