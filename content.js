@@ -40,7 +40,10 @@ function addCopyButton() {
   buttonContainer.style.marginBottom = "10px";
   buttonContainer.style.display = "flex";
   buttonContainer.style.alignItems = "center";
+  buttonContainer.style.fontFamily = "Segoe UI, Tahoma, sans-serif";
+  buttonContainer.style.fontWeight = "500";
 
+  // Create the "Copy Selected" button
   // Create the "Copy Selected" button
   // This copies magnet links of checked items
   const copyButton = document.createElement("button");
@@ -96,79 +99,12 @@ function addCopyButton() {
     }
   });
 
-  // Create container for the filename format toggle
-  const toggleContainer = document.createElement("div");
-  toggleContainer.style.marginLeft = "15px";
-  toggleContainer.style.display = "flex";
-  toggleContainer.style.alignItems = "center";
-  toggleContainer.style.fontWeight = "normal"; // Prevent bold text inheritance
-
-  // Create checkbox for filename format toggle
-  const toggleCheckbox = document.createElement("input");
-  toggleCheckbox.type = "checkbox";
-  toggleCheckbox.id = "renameToggle";
-  toggleCheckbox.style.margin = "0 5px 0 0"; // Remove default margins
-
-  // Create checkbox for ZIP format toggle
-  const zipToggleCheckbox = document.createElement("input");
-  zipToggleCheckbox.type = "checkbox";
-  zipToggleCheckbox.id = "zipToggle";
-  zipToggleCheckbox.style.margin = "0 5px 0 0"; // Remove default margins
-
-  // Load user's saved preferences and apply them to the checkboxes
-  loadStoredPreferences().then((prefs) => {
-    toggleCheckbox.checked = prefs.useDisplayName;
-    zipToggleCheckbox.checked = prefs.useZip;
-  });
-
-  // Save preferences whenever they change
-  toggleCheckbox.addEventListener("change", (e) => {
-    savePreference("useDisplayName", e.target.checked);
-  });
-
-  zipToggleCheckbox.addEventListener("change", (e) => {
-    savePreference("useZip", e.target.checked);
-  });
-
-  // Create and style label for filename format toggle
-  const toggleLabel = document.createElement("label");
-  toggleLabel.htmlFor = "renameToggle";
-  toggleLabel.textContent = "Use display name as filename";
-  toggleLabel.style.margin = "0";
-  toggleLabel.style.cursor = "pointer";
-  toggleLabel.style.fontWeight = "normal";
-
-  // Assemble filename format toggle components
-  toggleContainer.appendChild(toggleCheckbox);
-  toggleContainer.appendChild(toggleLabel);
-
-  // Create container for ZIP format toggle
-  const zipToggleContainer = document.createElement("div");
-  zipToggleContainer.style.marginLeft = "15px";
-  zipToggleContainer.style.display = "flex";
-  zipToggleContainer.style.alignItems = "center";
-  zipToggleContainer.style.fontWeight = "normal";
-
-  // Create and style label for ZIP format toggle
-  const zipToggleLabel = document.createElement("label");
-  zipToggleLabel.htmlFor = "zipToggle";
-  zipToggleLabel.textContent = "Combine downloads as ZIP";
-  zipToggleLabel.style.margin = "0";
-  zipToggleLabel.style.cursor = "pointer";
-  zipToggleLabel.style.fontWeight = "normal";
-
-  // Assemble ZIP format toggle components
-  zipToggleContainer.appendChild(zipToggleCheckbox);
-  zipToggleContainer.appendChild(zipToggleLabel);
-
   buttonContainer.appendChild(copyButton);
   buttonContainer.appendChild(copyAllButton);
   buttonContainer.appendChild(downloadButton);
   buttonContainer.appendChild(downloadAllButton);
   buttonContainer.appendChild(clearButton);
   buttonContainer.appendChild(selectionCounter);
-  buttonContainer.appendChild(toggleContainer);
-  buttonContainer.appendChild(zipToggleContainer);
   container.parentNode.insertBefore(buttonContainer, container);
 }
 
@@ -422,7 +358,7 @@ async function downloadTorrentsAsZip(torrents, zipName) {
     const zip = new JSZip();
     let completedDownloads = 0;
     const progressNotification = createProgressNotification();
-    const useAnimeTitle = document.getElementById("renameToggle").checked;
+    const prefs = await loadStoredPreferences();
 
     // Update initial progress
     progressNotification.textContent = `Progress: 0/${torrents.length} files`;
@@ -440,8 +376,8 @@ async function downloadTorrentsAsZip(torrents, zipName) {
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
 
-        // Use appropriate filename based on user preference
-        const filename = useAnimeTitle
+        // Use appropriate filename based on stored preference
+        const filename = prefs.useDisplayName
           ? torrent.filename + ".torrent"
           : torrent.url.split("/").pop();
 
@@ -494,8 +430,7 @@ async function downloadTorrentsAsZip(torrents, zipName) {
 // This is used when ZIP option is disabled or only one file is selected
 // torrents: Array of torrent objects with url and filename
 async function downloadIndividualTorrents(torrents) {
-  // Get user preference for filename format
-  const useAnimeTitle = document.getElementById("renameToggle").checked;
+  const prefs = await loadStoredPreferences();
   const progressNotification = createProgressNotification();
   let completedDownloads = 0;
 
@@ -511,8 +446,7 @@ async function downloadIndividualTorrents(torrents) {
         throw new Error(`HTTP error! status: ${response.status}`);
       const blob = await response.blob();
 
-      // Use appropriate filename based on user preference
-      const filename = useAnimeTitle
+      const filename = prefs.useDisplayName
         ? torrent.filename + ".torrent"
         : torrent.url.split("/").pop();
 
@@ -548,14 +482,91 @@ async function downloadIndividualTorrents(torrents) {
 // zipName: Name to use for ZIP file if ZIP option is enabled
 async function downloadTorrents(torrents, zipName) {
   // Check user's ZIP preference
-  const useZip = document.getElementById("zipToggle").checked;
+  const prefs = await loadStoredPreferences();
 
   // Use individual downloads if only one file or ZIP is disabled
   // Otherwise use ZIP download
-  if (torrents.length === 1 || !useZip) {
+  if (torrents.length === 1 || !prefs.useZip) {
     await downloadIndividualTorrents(torrents);
   } else {
     await downloadTorrentsAsZip(torrents, zipName);
+  }
+}
+
+// Function to show changelog notification
+async function showChangelog() {
+  // Get current version from manifest
+  const manifest = chrome.runtime.getManifest();
+  const currentVersion = manifest.version;
+
+  // Get stored version and dismissed states
+  const { lastVersion, changelogDismissed, tempDismissed } =
+    await chrome.storage.sync.get([
+      "lastVersion",
+      "changelogDismissed",
+      "tempDismissed",
+    ]);
+
+  // Reset tempDismissed if version is different
+  if (currentVersion !== lastVersion) {
+    await chrome.storage.sync.set({ tempDismissed: false });
+  }
+
+  // Show if:
+  // 1. Version is different and not permanently dismissed OR
+  // 2. Same version but not temporarily or permanently dismissed
+  if (
+    (currentVersion !== lastVersion && !changelogDismissed) ||
+    (currentVersion === lastVersion && !tempDismissed && !changelogDismissed)
+  ) {
+    const container = document.createElement("div");
+    container.className = "changelog-container";
+    container.innerHTML = `
+      <div class="changelog-header">
+        <span class="changelog-title">What's New</span>
+        <span class="changelog-version">v${currentVersion}</span>
+      </div>
+      <div class="changelog-content">
+        • Added badge indicator for supported sites<br>
+        • Moved toggles to the extension popup<br>
+        • Added Changelog notification<br>
+        • Added changelog toggle in popup settings<br>
+        • Adjusted styling
+      </div>
+      <div class="changelog-actions">
+        <button class="changelog-button okay">Okay</button>
+        <button class="changelog-button dont-show">Don't show again</button>
+      </div>
+    `;
+
+    document.body.appendChild(container);
+
+    // Handle "Don't show again" button - permanent dismissal
+    container
+      .querySelector(".changelog-button.dont-show")
+      .addEventListener("click", async () => {
+        await chrome.storage.sync.set({
+          lastVersion: currentVersion,
+          changelogDismissed: true,
+        });
+        container.classList.add("hiding");
+        setTimeout(() => container.remove(), 300);
+      });
+
+    // Handle "Okay" button - temporary dismissal until next version
+    container
+      .querySelector(".changelog-button.okay")
+      .addEventListener("click", async () => {
+        await chrome.storage.sync.set({
+          lastVersion: currentVersion,
+          tempDismissed: true,
+        });
+        container.classList.add("hiding");
+        setTimeout(() => container.remove(), 300);
+      });
+
+    // Store new version
+    await chrome.storage.sync.set({ lastVersion: currentVersion });
   }
 }
 
@@ -566,9 +577,11 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     addCopyButton();
     addCheckboxColumn();
+    showChangelog();
   });
 } else {
   // If the document is already loaded, add UI elements immediately
   addCopyButton();
   addCheckboxColumn();
+  showChangelog();
 }

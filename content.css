@@ -60,3 +60,90 @@
 .download-button:hover {
   background-color: #449d44 !important;
 }
+
+.changelog-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 16px;
+  width: 300px;
+  color: #fff;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+  animation: slideIn 0.3s ease;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.changelog-container.hiding {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.changelog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.changelog-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #4caf50;
+}
+
+.changelog-version {
+  font-size: 14px;
+  color: #999;
+}
+
+.changelog-content {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: #ccc;
+}
+
+.changelog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.changelog-button {
+  background: #4caf50;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.changelog-button:hover {
+  background: #66bb6a;
+}
+
+.changelog-button.dont-show {
+  background: #f44336;
+}
+
+.changelog-button.dont-show:hover {
+  background: #d32f2f;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
