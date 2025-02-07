@@ -9,8 +9,14 @@ function loadStoredPreferences() {
         // Default values if no settings are found:
         // - useDisplayName: whether to use anime titles for filenames
         // - useZip: whether to combine downloads into a ZIP file
+        // - showButtons: whether to show button controls
+        // - showATLinks: whether to show AnimeToSho links
+        // - showMagnetButtons: whether to show magnet copy buttons
         useDisplayName: true,
         useZip: true,
+        showButtons: true,
+        showATLinks: true,
+        showMagnetButtons: true,
       },
       (items) => {
         resolve(items);
@@ -29,14 +35,19 @@ function savePreference(key, value) {
 }
 
 // Main function that creates and adds all UI elements to the page
-function addCopyButton() {
-  // Find the table container where we'll add our buttons
+async function addCopyButton() {
+  const prefs = await loadStoredPreferences();
+
+  // If buttons are disabled, don't add the button container
+  if (!prefs.showButtons) return;
+
   const container = document.querySelector(".table-responsive");
   if (!container) return;
 
   // Create a container for all our buttons and controls
   // This will be placed above the torrent table
   const buttonContainer = document.createElement("div");
+  buttonContainer.className = "button-container";
   buttonContainer.style.marginBottom = "10px";
   buttonContainer.style.display = "flex";
   buttonContainer.style.alignItems = "center";
@@ -110,28 +121,118 @@ function addCopyButton() {
 
 // Function to add a checkbox column to the torrent table
 // This allows users to select individual torrents for batch operations
-function addCheckboxColumn() {
-  // Add a new column header to the table for checkboxes
+async function addCheckboxColumn() {
+  const prefs = await loadStoredPreferences();
+
+  // Add new column headers to the table
   const headerRow = document.querySelector("table.torrent-list thead tr");
   if (!headerRow) return;
 
-  const checkboxHeader = document.createElement("th");
-  checkboxHeader.className = "magnet-checkbox-column text-center";
-  headerRow.appendChild(checkboxHeader);
+  // Add AT column header if enabled
+  if (prefs.showATLinks) {
+    const atHeader = document.createElement("th");
+    atHeader.className = "text-center";
+    atHeader.style.width = "70px";
+    atHeader.textContent = "AT";
+    const checkboxHeader = headerRow.querySelector(".magnet-checkbox-column");
+    headerRow.insertBefore(atHeader, checkboxHeader);
+  }
 
-  // Add checkboxes to each row in the table
-  // These checkboxes allow users to select which torrents they want to process
+  // Add Magnet column header if enabled
+  if (prefs.showMagnetButtons) {
+    const magnetHeader = document.createElement("th");
+    magnetHeader.className = "text-center";
+    magnetHeader.style.width = "70px";
+    magnetHeader.textContent = "Magnet";
+    const checkboxHeader = headerRow.querySelector(".magnet-checkbox-column");
+    const atHeader = Array.from(
+      headerRow.querySelectorAll("th.text-center")
+    ).find((header) => header.textContent === "AT");
+
+    if (atHeader) {
+      headerRow.insertBefore(magnetHeader, atHeader.nextSibling);
+    } else if (checkboxHeader) {
+      headerRow.insertBefore(magnetHeader, checkboxHeader);
+    } else {
+      headerRow.appendChild(magnetHeader);
+    }
+  }
+
+  // Add checkbox column header only if buttons are enabled
+  if (prefs.showButtons) {
+    const checkboxHeader = document.createElement("th");
+    checkboxHeader.className = "magnet-checkbox-column text-center";
+    headerRow.appendChild(checkboxHeader);
+  }
+
+  // Add cells to each row in the table
   const rows = document.querySelectorAll("table.torrent-list tbody tr");
   rows.forEach((row) => {
-    const checkboxCell = document.createElement("td");
-    checkboxCell.className = "text-center";
+    // Create AT cell with link if enabled
+    if (prefs.showATLinks) {
+      const atCell = document.createElement("td");
+      atCell.className = "text-center at-column";
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "magnet-checkbox";
+      const categoryLink = row.querySelector("td:first-child a");
+      const isAnimeEnglish =
+        categoryLink?.getAttribute("title") === "Anime - English-translated";
 
-    checkboxCell.appendChild(checkbox);
-    row.appendChild(checkboxCell);
+      if (isAnimeEnglish) {
+        const titleLink = row.querySelector('td a[href^="/view/"]');
+        if (titleLink) {
+          const nyaaId = titleLink.href.split("/").pop();
+          const atLink = document.createElement("a");
+          atLink.href = `https://animetosho.org/view/n${nyaaId}`;
+          atLink.target = "_blank";
+          atLink.innerHTML = '<i class="fa fa-external-link"></i>';
+          atLink.style.color = "#337ab7";
+          atCell.appendChild(atLink);
+        }
+      }
+      row.insertBefore(atCell, row.lastElementChild?.nextSibling);
+    }
+
+    // Create magnet cell if enabled
+    if (prefs.showMagnetButtons) {
+      const magnetCell = document.createElement("td");
+      magnetCell.className = "text-center magnet-column";
+
+      const linkCell = row.querySelector('td:has(a[href^="magnet:"])');
+      if (linkCell) {
+        const magnetLink = linkCell.querySelector('a[href^="magnet:"]');
+        if (magnetLink) {
+          const magnetButton = document.createElement("button");
+          magnetButton.className = "magnet-button";
+          magnetButton.innerHTML = '<i class="fa fa-magnet"></i> Copy';
+          magnetButton.style.fontFamily = "Segoe UI, Tahoma, sans-serif";
+          magnetButton.style.fontWeight = "500";
+          magnetButton.addEventListener("click", () => {
+            navigator.clipboard
+              .writeText(magnetLink.href)
+              .then(() => {
+                showNotification("Magnet link copied to clipboard!", true);
+              })
+              .catch((err) => {
+                console.error("Failed to copy magnet:", err);
+                showNotification("Failed to copy magnet link", false);
+              });
+          });
+          magnetCell.appendChild(magnetButton);
+        }
+      }
+      row.insertBefore(magnetCell, row.lastElementChild?.nextSibling);
+    }
+
+    // Add checkbox cell only if buttons are enabled
+    if (prefs.showButtons) {
+      const checkboxCell = document.createElement("td");
+      checkboxCell.className = "text-center";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "magnet-checkbox";
+      checkboxCell.appendChild(checkbox);
+      row.appendChild(checkboxCell);
+    }
   });
 }
 
@@ -527,11 +628,10 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added badge indicator for supported sites<br>
-        • Moved toggles to the extension popup<br>
-        • Added Changelog notification<br>
-        • Added changelog toggle in popup settings<br>
-        • Adjusted styling
+        • Added Animetosho links column for supported torrents<br>
+        • Added Animetosho link to view page for supported torrents<br>
+        • Added magnet copy buttons column<br>
+        • Added toggles for all features
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -570,6 +670,309 @@ async function showChangelog() {
   }
 }
 
+// Add message listener for real-time updates
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "settingChanged") {
+    handleSettingChange(message.setting, message.value);
+  }
+});
+
+async function handleSettingChange(setting, value) {
+  switch (setting) {
+    case "showButtons":
+      const buttonContainer = document.querySelector(".button-container");
+      if (!value) {
+        // Handle button container fade out
+        if (buttonContainer) {
+          buttonContainer.classList.add("hiding");
+          await new Promise((r) => setTimeout(r, 300)); // Wait for animation
+          buttonContainer.style.display = "none";
+        }
+        // Remove checkbox header and cells immediately
+        const checkboxHeader = document.querySelector(
+          ".magnet-checkbox-column"
+        );
+        if (checkboxHeader) checkboxHeader.remove();
+        document.querySelectorAll(".magnet-checkbox").forEach((checkbox) => {
+          const cell = checkbox.closest("td");
+          if (cell) cell.remove();
+        });
+      } else {
+        // If enabling buttons, remove old container and create new one
+        if (buttonContainer) {
+          buttonContainer.remove();
+        }
+        await addCopyButton();
+
+        // Add only the checkbox column
+        const headerRow = document.querySelector("table.torrent-list thead tr");
+        if (headerRow) {
+          const checkboxHeader = document.createElement("th");
+          checkboxHeader.className = "magnet-checkbox-column text-center";
+          headerRow.appendChild(checkboxHeader);
+        }
+
+        // Add checkbox cells
+        const rows = document.querySelectorAll("table.torrent-list tbody tr");
+        rows.forEach((row) => {
+          const checkboxCell = document.createElement("td");
+          checkboxCell.className = "text-center";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "magnet-checkbox";
+          checkboxCell.appendChild(checkbox);
+          row.appendChild(checkboxCell);
+        });
+      }
+      break;
+    case "showMagnetButtons":
+      if (!value) {
+        // Remove magnet header and cells immediately if disabled
+        const magnetHeaders = document.querySelectorAll("th.text-center");
+        magnetHeaders.forEach((header) => {
+          if (header.textContent === "Magnet") {
+            header.remove();
+          }
+        });
+
+        // Remove all magnet cells
+        document.querySelectorAll(".magnet-column").forEach((cell) => {
+          cell.remove();
+        });
+      } else {
+        // Add only the magnet column
+        const headerRow = document.querySelector("table.torrent-list thead tr");
+        if (headerRow) {
+          const magnetHeader = document.createElement("th");
+          magnetHeader.className = "text-center";
+          magnetHeader.style.width = "70px";
+          magnetHeader.textContent = "Magnet";
+
+          // Find the correct position to insert the magnet header
+          const checkboxHeader = headerRow.querySelector(
+            ".magnet-checkbox-column"
+          );
+          const atHeader = Array.from(
+            headerRow.querySelectorAll("th.text-center")
+          ).find((header) => header.textContent === "AT");
+
+          if (atHeader) {
+            // If AT column exists, insert after it
+            headerRow.insertBefore(magnetHeader, atHeader.nextSibling);
+          } else if (checkboxHeader) {
+            // If no AT column, insert before checkbox
+            headerRow.insertBefore(magnetHeader, checkboxHeader);
+          } else {
+            // If neither exists, append to end
+            headerRow.appendChild(magnetHeader);
+          }
+        }
+
+        // Add magnet cells
+        const rows = document.querySelectorAll("table.torrent-list tbody tr");
+        rows.forEach((row) => {
+          const magnetCell = document.createElement("td");
+          magnetCell.className = "text-center magnet-column";
+
+          const linkCell = row.querySelector('td:has(a[href^="magnet:"])');
+          if (linkCell) {
+            const magnetLink = linkCell.querySelector('a[href^="magnet:"]');
+            if (magnetLink) {
+              const magnetButton = document.createElement("button");
+              magnetButton.className = "magnet-button";
+              magnetButton.innerHTML = '<i class="fa fa-magnet"></i> Copy';
+              magnetButton.style.fontFamily = "Segoe UI, Tahoma, sans-serif";
+              magnetButton.style.fontWeight = "500";
+              magnetButton.addEventListener("click", () => {
+                navigator.clipboard
+                  .writeText(magnetLink.href)
+                  .then(() => {
+                    showNotification("Magnet link copied to clipboard!", true);
+                  })
+                  .catch((err) => {
+                    console.error("Failed to copy magnet:", err);
+                    showNotification("Failed to copy magnet link", false);
+                  });
+              });
+              magnetCell.appendChild(magnetButton);
+            }
+          }
+
+          // Find the correct position to insert the magnet cell
+          const checkboxCell = row
+            .querySelector(".magnet-checkbox")
+            ?.closest("td");
+          const atCell = row.querySelector(".at-column");
+
+          if (atCell) {
+            // If AT cell exists, insert after it
+            row.insertBefore(magnetCell, atCell.nextSibling);
+          } else if (checkboxCell) {
+            // If no AT cell, insert before checkbox
+            row.insertBefore(magnetCell, checkboxCell);
+          } else {
+            // If neither exists, append to end
+            row.appendChild(magnetCell);
+          }
+        });
+      }
+      break;
+    case "showATLinks":
+      if (!value) {
+        // Remove AT header and cells immediately if disabled
+        const atHeaders = document.querySelectorAll("th.text-center");
+        atHeaders.forEach((header) => {
+          if (header.textContent === "AT") {
+            header.remove();
+          }
+        });
+
+        // Remove all AT cells
+        document.querySelectorAll(".at-column").forEach((cell) => {
+          cell.remove();
+        });
+
+        // Remove Animetosho row from view page if it exists
+        const animeRow = Array.from(document.querySelectorAll(".row")).find(
+          (row) => row.textContent.includes("Animetosho:")
+        );
+        if (animeRow) {
+          const infoHashKbd = animeRow.querySelector("kbd");
+          if (infoHashKbd) {
+            // Create new row with just the info hash
+            const newRow = document.createElement("div");
+            newRow.className = "row";
+            newRow.innerHTML = `
+              <div class="col-md-offset-6 col-md-1">Info hash:</div>
+              <div class="col-md-5"><kbd>${infoHashKbd.textContent}</kbd></div>
+            `;
+            animeRow.replaceWith(newRow);
+          }
+        }
+      } else {
+        // Add AT column to table
+        const headerRow = document.querySelector("table.torrent-list thead tr");
+        if (headerRow) {
+          const atHeader = document.createElement("th");
+          atHeader.className = "text-center";
+          atHeader.style.width = "70px";
+          atHeader.textContent = "AT";
+
+          // Always insert AT before Magnet and Checkbox
+          const magnetHeader = Array.from(
+            headerRow.querySelectorAll("th.text-center")
+          ).find((header) => header.textContent === "Magnet");
+          const checkboxHeader = headerRow.querySelector(
+            ".magnet-checkbox-column"
+          );
+
+          if (magnetHeader) {
+            headerRow.insertBefore(atHeader, magnetHeader);
+          } else if (checkboxHeader) {
+            headerRow.insertBefore(atHeader, checkboxHeader);
+          } else {
+            headerRow.appendChild(atHeader);
+          }
+        }
+
+        // Add AT cells
+        const rows = document.querySelectorAll("table.torrent-list tbody tr");
+        rows.forEach((row) => {
+          const atCell = document.createElement("td");
+          atCell.className = "text-center at-column";
+
+          const categoryLink = row.querySelector("td:first-child a");
+          const isAnimeEnglish =
+            categoryLink?.getAttribute("title") ===
+            "Anime - English-translated";
+
+          if (isAnimeEnglish) {
+            const titleLink = row.querySelector('td a[href^="/view/"]');
+            if (titleLink) {
+              const nyaaId = titleLink.href.split("/").pop();
+              const atLink = document.createElement("a");
+              atLink.href = `https://animetosho.org/view/n${nyaaId}`;
+              atLink.target = "_blank";
+              atLink.innerHTML = '<i class="fa fa-external-link"></i>';
+              atLink.style.color = "#337ab7";
+              atCell.appendChild(atLink);
+            }
+          }
+
+          // Always insert AT cell before Magnet and Checkbox
+          const magnetCell = row.querySelector(".magnet-column");
+          const checkboxCell = row
+            .querySelector(".magnet-checkbox")
+            ?.closest("td");
+
+          if (magnetCell) {
+            row.insertBefore(atCell, magnetCell);
+          } else if (checkboxCell) {
+            row.insertBefore(atCell, checkboxCell);
+          } else {
+            row.appendChild(atCell);
+          }
+        });
+
+        // Add Animetosho link to view page
+        addAnimetoshoToViewPage();
+      }
+      break;
+  }
+}
+
+// Function to add Animetosho link to torrent view pages
+async function addAnimetoshoToViewPage() {
+  // Check if we're on a view page and AT links are enabled
+  if (!window.location.pathname.startsWith("/view/")) return;
+
+  const prefs = await loadStoredPreferences();
+  if (!prefs.showATLinks) return;
+
+  // Check if it's an English-translated anime
+  const categoryLinks = document.querySelectorAll(".row .col-md-5 a");
+  const isAnime = Array.from(categoryLinks).some(
+    (link) => link.textContent === "Anime"
+  );
+  const isEnglish = Array.from(categoryLinks).some(
+    (link) => link.textContent === "English-translated"
+  );
+
+  if (!isAnime || !isEnglish) return;
+
+  // Get the torrent ID from the URL
+  const torrentId = window.location.pathname.split("/").pop();
+
+  // Find the info hash row
+  const infoHashRow = Array.from(document.querySelectorAll(".row")).find(
+    (row) => row.textContent.includes("Info hash:")
+  );
+
+  if (!infoHashRow) return;
+
+  // Get the info hash content, removing the offset class
+  const infoHashContent = infoHashRow.innerHTML.replace(
+    "col-md-offset-6 col-md-1",
+    "col-md-1"
+  );
+
+  // Create the new row structure
+  const newRow = document.createElement("div");
+  newRow.className = "row";
+  newRow.innerHTML = `
+    <div class="col-md-1">Animetosho:</div>
+    <div class="col-md-5">
+      <a rel="noopener noreferrer nofollow" href="https://animetosho.org/view/n${torrentId}">
+        https://animetosho.org/view/n${torrentId}
+      </a>
+    </div>
+    ${infoHashContent}
+  `;
+
+  // Replace the old row with the new one
+  infoHashRow.replaceWith(newRow);
+}
+
 // Initialize the extension when the page loads
 // This ensures the DOM is ready before we add our UI elements
 if (document.readyState === "loading") {
@@ -577,11 +980,13 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     addCopyButton();
     addCheckboxColumn();
+    addAnimetoshoToViewPage();
     showChangelog();
   });
 } else {
   // If the document is already loaded, add UI elements immediately
   addCopyButton();
   addCheckboxColumn();
+  addAnimetoshoToViewPage();
   showChangelog();
 }

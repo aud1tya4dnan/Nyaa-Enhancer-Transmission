@@ -147,3 +147,42 @@
     opacity: 1;
   }
 }
+
+.magnet-button {
+  padding: 5px 10px;
+  background-color: #337ab7;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.magnet-button:hover {
+  background-color: #286090;
+}
+
+.magnet-button i {
+  font-size: 14px;
+}
+
+.button-container,
+.magnet-checkbox-column {
+  transition: opacity 0.3s ease;
+}
+
+.button-container.hiding,
+.magnet-checkbox-column.hiding {
+  opacity: 0;
+}
+
+.custom-column {
+  transition: opacity 0.3s ease;
+}
+
+.custom-column.hiding {
+  opacity: 0;
+}

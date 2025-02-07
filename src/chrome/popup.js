@@ -15,11 +15,35 @@ document.querySelectorAll(".nav-button").forEach((button) => {
   });
 });
 
+// Function to update dependent toggles
+function updateDependentToggles(buttonsEnabled) {
+  const dependentToggles = ["displayNameToggle", "zipToggle"];
+
+  dependentToggles.forEach((toggleId) => {
+    const toggle = document.querySelector(`[data-toggle="${toggleId}"]`);
+    const toggleContainer = toggle.closest(".setting-item");
+
+    if (buttonsEnabled) {
+      toggleContainer.style.opacity = "1";
+      toggleContainer.style.pointerEvents = "auto";
+    } else {
+      toggleContainer.style.opacity = "0.5";
+      toggleContainer.style.pointerEvents = "none";
+    }
+
+    // Add transition for smooth animation
+    toggleContainer.style.transition = "opacity 0.3s ease";
+  });
+}
+
 // Initialize toggle states from storage
 chrome.storage.sync.get(
   {
     useDisplayName: true,
     useZip: true,
+    showButtons: true,
+    showATLinks: true,
+    showMagnetButtons: true,
     changelogDismissed: false,
   },
   (items) => {
@@ -30,8 +54,20 @@ chrome.storage.sync.get(
       .querySelector('[data-toggle="zipToggle"]')
       .setAttribute("aria-checked", items.useZip);
     document
+      .querySelector('[data-toggle="showButtonsToggle"]')
+      .setAttribute("aria-checked", items.showButtons);
+    document
+      .querySelector('[data-toggle="showATLinksToggle"]')
+      .setAttribute("aria-checked", items.showATLinks);
+    document
+      .querySelector('[data-toggle="showMagnetButtonsToggle"]')
+      .setAttribute("aria-checked", items.showMagnetButtons);
+    document
       .querySelector('[data-toggle="changelogToggle"]')
       .setAttribute("aria-checked", !items.changelogDismissed);
+
+    // Initialize dependent toggles state
+    updateDependentToggles(items.showButtons);
   }
 );
 
@@ -51,12 +87,51 @@ document.querySelectorAll(".toggle-button").forEach((button) => {
       case "zipToggle":
         setting = "useZip";
         break;
+      case "showButtonsToggle":
+        setting = "showButtons";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "showButtons",
+              value: newState,
+            });
+          }
+        );
+        updateDependentToggles(newState);
+        break;
+      case "showATLinksToggle":
+        setting = "showATLinks";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "showATLinks",
+              value: newState,
+            });
+          }
+        );
+        break;
+      case "showMagnetButtonsToggle":
+        setting = "showMagnetButtons";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "showMagnetButtons",
+              value: newState,
+            });
+          }
+        );
+        break;
       case "changelogToggle":
         setting = "changelogDismissed";
-        // Invert the value for changelogDismissed since the toggle represents "show changelogs"
         chrome.storage.sync.set({
           changelogDismissed: !newState,
-          tempDismissed: !newState, // Reset tempDismissed when toggling changelogs
+          tempDismissed: !newState,
         });
         return;
     }
