@@ -1,9 +1,9 @@
-// Function to load user preferences from Browsers's storage
+// Function to load user preferences from Firefox's storage
 // This includes settings for filename format and ZIP packaging
 function loadStoredPreferences() {
   return new Promise((resolve) => {
     // browser.storage.sync.get allows saving settings across different devices
-    // if the user is signed into Browser
+    // if the user is signed into Firefox
     browser.storage.sync.get(
       {
         // Default values if no settings are found:
@@ -25,7 +25,7 @@ function loadStoredPreferences() {
   });
 }
 
-// Function to save individual preferences to Browser's storage
+// Function to save individual preferences to Firefox's storage
 // key: the setting name (useDisplayName or useZip)
 // value: the boolean value of the setting (true/false)
 function savePreference(key, value) {
@@ -375,6 +375,20 @@ function clearSelection() {
   showNotification("Selection cleared", true);
 }
 
+// Function to get the correct title from a row
+function getTitleFromRow(row) {
+  const titleCell = row.querySelector('td[colspan="2"]');
+  if (!titleCell) return null;
+
+  // Get the view link (this will always be the title link, not comments)
+  // We specifically look for the last link in the cell to avoid the comment link
+  const links = titleCell.querySelectorAll('a[href^="/view/"]');
+
+  const titleLink = links[links.length - 1]; // Get the last view link (the actual title)
+
+  return titleLink?.title || titleLink?.textContent || null;
+}
+
 // Function to download selected torrent files
 // Downloads are combined into a ZIP if the ZIP option is enabled
 async function downloadSelectedTorrents() {
@@ -386,11 +400,11 @@ async function downloadSelectedTorrents() {
     const checkbox = row.querySelector(".magnet-checkbox");
     if (checkbox && checkbox.checked) {
       const torrentLink = row.querySelector('a[href$=".torrent"]');
-      const titleLink = row.querySelector('td a[href^="/view/"]');
-      if (torrentLink && titleLink) {
+      const title = getTitleFromRow(row);
+      if (torrentLink && title) {
         selectedTorrents.push({
           url: torrentLink.href,
-          filename: titleLink.title || titleLink.textContent,
+          filename: title,
         });
       }
     }
@@ -413,11 +427,11 @@ async function downloadAllTorrents() {
   // Collect information about all torrents
   rows.forEach((row) => {
     const torrentLink = row.querySelector('a[href$=".torrent"]');
-    const titleLink = row.querySelector('td a[href^="/view/"]');
-    if (torrentLink && titleLink) {
+    const title = getTitleFromRow(row);
+    if (torrentLink && title) {
       allTorrents.push({
         url: torrentLink.href,
-        filename: titleLink.title || titleLink.textContent,
+        filename: title,
       });
     }
   });
@@ -464,9 +478,14 @@ async function downloadTorrentsAsZip(torrents, zipName) {
     // Update initial progress
     progressNotification.textContent = `Progress: 0/${torrents.length} files`;
 
-    // Create an array of promises for parallel downloads
-    const fetchPromises = torrents.map(async (torrent) => {
+    // Process torrents sequentially with delay instead of in parallel
+    for (const torrent of torrents) {
       try {
+        // Add delay between requests (500ms)
+        if (completedDownloads > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
         // Download the torrent file with explicit response type
         const response = await fetch(torrent.url);
         if (!response.ok) {
@@ -491,10 +510,7 @@ async function downloadTorrentsAsZip(torrents, zipName) {
       } catch (error) {
         console.error(`Failed to fetch torrent: ${torrent.filename}`, error);
       }
-    });
-
-    // Wait for all downloads to complete
-    await Promise.all(fetchPromises);
+    }
 
     // Generate and download the ZIP file
     progressNotification.textContent = "Generating ZIP file...";
@@ -628,10 +644,9 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added Animetosho links column for supported torrents<br>
-        • Added Animetosho link to view page for supported torrents<br>
-        • Added magnet copy buttons column<br>
-        • Added toggles for all features
+        • Added rate limiting for when downloading torrents as ZIP<br>
+        • Fixed bug where torrent file would get renamed to the amount of comments it has<br>
+        • Fixed bug where not all torrent files would get downloaded when downloading as ZIP
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
