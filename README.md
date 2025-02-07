@@ -110,7 +110,7 @@ To install the extension in your browser, follow these steps.
 </a>    
   
 
-**Edge Add-Ons Store (not up yet but according to microsoft it should be within 7 days lol):**  
+**Edge Add-Ons Store (still on 1.0.0 release - 1.4.1 pending):**  
 <a href="https://microsoftedge.microsoft.com/addons/detail/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
