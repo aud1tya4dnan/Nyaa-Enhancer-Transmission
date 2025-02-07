@@ -644,9 +644,7 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added rate limiting for when downloading torrents as ZIP<br>
-        • Fixed bug where torrent file would get renamed to the amount of comments it has<br>
-        • Fixed bug where not all torrent files would get downloaded when downloading as ZIP
+        • Removed unnecessary downloads permission to improve security
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
