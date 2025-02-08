@@ -186,3 +186,12 @@
 .custom-column.hiding {
   opacity: 0;
 }
+
+.quick-filter-button {
+  margin-left: auto;
+  transition: opacity 0.3s ease;
+}
+
+.quick-filter-button.hiding {
+  opacity: 0;
+}

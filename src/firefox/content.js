@@ -12,11 +12,13 @@ function loadStoredPreferences() {
         // - showButtons: whether to show button controls
         // - showATLinks: whether to show AnimeToSho links
         // - showMagnetButtons: whether to show magnet copy buttons
+        // - showQuickFilter: whether to show the Quick Filter button
         useDisplayName: true,
         useZip: true,
         showButtons: true,
         showATLinks: true,
         showMagnetButtons: true,
+        showQuickFilter: true,
       },
       (items) => {
         resolve(items);
@@ -82,9 +84,15 @@ async function addCopyButton() {
   // This downloads all .torrent files on the page
   const downloadAllButton = document.createElement("button");
   downloadAllButton.className = "copy-magnets-button download-button";
-  downloadAllButton.style.marginLeft = "10px";
   downloadAllButton.textContent = "Download All";
   downloadAllButton.addEventListener("click", downloadAllTorrents);
+
+  // Add before the "Clear Selection" button
+  const invertButton = document.createElement("button");
+  invertButton.className = "copy-magnets-button magnet-button";
+  invertButton.style.marginLeft = "10px";
+  invertButton.innerHTML = '<i class="fa fa-exchange"></i> Invert Selection';
+  invertButton.addEventListener("click", invertSelection);
 
   // Create the "Clear Selection" button
   // This unchecks all checkboxes
@@ -110,12 +118,21 @@ async function addCopyButton() {
     }
   });
 
+  // Create Quick Filter button
+  const quickFilterButton = document.createElement("button");
+  quickFilterButton.className = "copy-magnets-button quick-filter-button";
+  quickFilterButton.style.display = prefs.showQuickFilter ? "block" : "none";
+  quickFilterButton.innerHTML = '<i class="fa fa-filter"></i> Quick Filter';
+  quickFilterButton.addEventListener("click", showQuickFilterPopup);
+
   buttonContainer.appendChild(copyButton);
   buttonContainer.appendChild(copyAllButton);
   buttonContainer.appendChild(downloadButton);
   buttonContainer.appendChild(downloadAllButton);
+  buttonContainer.appendChild(invertButton);
   buttonContainer.appendChild(clearButton);
   buttonContainer.appendChild(selectionCounter);
+  buttonContainer.appendChild(quickFilterButton);
   container.parentNode.insertBefore(buttonContainer, container);
 }
 
@@ -165,7 +182,10 @@ async function addCheckboxColumn() {
     headerRow.appendChild(checkboxHeader);
   }
 
-  // Add cells to each row in the table
+  // Keep track of last checked checkbox
+  let lastChecked = null;
+
+  // Add checkbox cells
   const rows = document.querySelectorAll("table.torrent-list tbody tr");
   rows.forEach((row) => {
     // Create AT cell with link if enabled
@@ -230,6 +250,29 @@ async function addCheckboxColumn() {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "magnet-checkbox";
+
+      // Add shift+click handler
+      checkbox.addEventListener("click", function (e) {
+        if (!lastChecked) {
+          lastChecked = this;
+          return;
+        }
+
+        if (e.shiftKey) {
+          const checkboxes = Array.from(
+            document.querySelectorAll(".magnet-checkbox")
+          );
+          const start = checkboxes.indexOf(this);
+          const end = checkboxes.indexOf(lastChecked);
+
+          checkboxes
+            .slice(Math.min(start, end), Math.max(start, end) + 1)
+            .forEach((checkbox) => (checkbox.checked = this.checked));
+        }
+
+        lastChecked = this;
+      });
+
       checkboxCell.appendChild(checkbox);
       row.appendChild(checkboxCell);
     }
@@ -644,7 +687,9 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Removed unnecessary downloads permission to improve security
+        • Added Quick Filter feature to easily search for specific anime, encoders, quality, format, and source<br>
+        • Added Invert Selection button<br>
+        • Added ability to select everything in between two checkboxes (Shift+Click)
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -733,6 +778,29 @@ async function handleSettingChange(setting, value) {
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.className = "magnet-checkbox";
+
+          // Add shift+click handler
+          checkbox.addEventListener("click", function (e) {
+            if (!lastChecked) {
+              lastChecked = this;
+              return;
+            }
+
+            if (e.shiftKey) {
+              const checkboxes = Array.from(
+                document.querySelectorAll(".magnet-checkbox")
+              );
+              const start = checkboxes.indexOf(this);
+              const end = checkboxes.indexOf(lastChecked);
+
+              checkboxes
+                .slice(Math.min(start, end), Math.max(start, end) + 1)
+                .forEach((checkbox) => (checkbox.checked = this.checked));
+            }
+
+            lastChecked = this;
+          });
+
           checkboxCell.appendChild(checkbox);
           row.appendChild(checkboxCell);
         });
@@ -931,6 +999,36 @@ async function handleSettingChange(setting, value) {
         addAnimetoshoToViewPage();
       }
       break;
+    case "showQuickFilter":
+      const quickFilterButton = document.querySelector(".quick-filter-button");
+      if (quickFilterButton) {
+        if (!value) {
+          quickFilterButton.classList.add("hiding");
+          setTimeout(() => {
+            quickFilterButton.style.display = "none";
+          }, 300);
+        } else {
+          quickFilterButton.style.display = "block";
+          // Force browser to process the display change
+          quickFilterButton.offsetHeight;
+          quickFilterButton.classList.remove("hiding");
+        }
+      }
+
+      // Close Quick Filter popup if it's open and setting is turned off
+      if (!value) {
+        const popup = document.querySelector(".quick-filter-popup");
+        const overlay = document.querySelector(".quick-filter-overlay");
+        if (popup && overlay) {
+          popup.classList.add("hiding");
+          overlay.classList.add("hiding");
+          setTimeout(() => {
+            popup.remove();
+            overlay.remove();
+          }, 300);
+        }
+      }
+      break;
   }
 }
 
@@ -984,6 +1082,413 @@ async function addAnimetoshoToViewPage() {
 
   // Replace the old row with the new one
   infoHashRow.replaceWith(newRow);
+}
+
+// Function to invert the current selection state of all checkboxes
+function invertSelection() {
+  const checkboxes = document.querySelectorAll(".magnet-checkbox");
+  let invertedCount = 0;
+
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = !checkbox.checked;
+    if (checkbox.checked) invertedCount++;
+  });
+
+  showNotification(
+    `Selection inverted (${invertedCount} items selected)`,
+    true
+  );
+}
+
+// Function to show Quick Filter popup
+function showQuickFilterPopup() {
+  const popup = document.createElement("div");
+  popup.className = "quick-filter-popup";
+  popup.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    min-width: 320px;
+    max-width: 400px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  `;
+
+  const content = `
+    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Quick Filter</h3>
+    
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Anime Name:</label>
+      <input type="text" id="anime-name" class="filter-input" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Encoder:</label>
+      <input type="text" id="encoder-name" class="filter-input" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Quality:</label>
+      <select id="quality" class="filter-select" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+        <option value="">Select Quality</option>
+        <option value="480p">480p</option>
+        <option value="720p">720p</option>
+        <option value="1080p">1080p</option>
+        <option value="2160p">2160p (4K)</option>
+      </select>
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Format:</label>
+      <select id="format" class="filter-select" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+        <option value="">Select Format</option>
+        <option value="264">H264/AVC</option>
+        <option value="x265">x265/HEVC</option>
+        <option value="AV1">AV1</option>
+        <option value="VP9">VP9</option>
+      </select>
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Source:</label>
+      <select id="source" class="filter-select" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+        <option value="">Select Source</option>
+        <option value="BD">BD (Blu-ray)</option>
+        <option value="Web">Web (Streaming Service)</option>
+        <option value="DVD">DVD</option>
+      </select>
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Category:</label>
+      <select id="category" class="filter-select" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+        <option value="0">All categories</option>
+        <option value="1">Anime Music Video</option>
+        <option value="2">English-translated</option>
+        <option value="3">Non-English-translated</option>
+        <option value="4">Raw</option>
+      </select>
+    </div>
+
+    <div class="filter-group" style="margin-bottom: 25px;">
+      <label style="display: flex; align-items: center; font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="dual-audio" style="
+          margin: 0;
+          margin-right: 8px;
+          cursor: pointer;
+        ">
+        <span style="font-weight: 500;">Dual Audio</span>
+      </label>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button id="reset-filter" class="copy-magnets-button clear-button" style="
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      ">Reset</button>
+      <button id="cancel-filter" class="copy-magnets-button" style="
+        padding: 8px 16px;
+        border: none;
+        background: #337ab7;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      ">Cancel</button>
+      <button id="apply-filter" class="copy-magnets-button" style="
+        padding: 8px 16px;
+        border: none;
+        background: #337ab7;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      ">Search</button>
+    </div>
+  `;
+
+  popup.innerHTML = content;
+
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.className = "quick-filter-overlay";
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+  document.body.style.overflow = "hidden";
+
+  // Add hover effects for inputs and buttons
+  const style = document.createElement("style");
+  style.textContent = `
+    .quick-filter-popup {
+      animation: popupFadeIn 0.3s ease;
+    }
+
+    .quick-filter-overlay {
+      animation: overlayFadeIn 0.3s ease;
+    }
+
+    @keyframes popupFadeIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes overlayFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .quick-filter-popup.hiding {
+      animation: popupFadeOut 0.3s ease;
+    }
+
+    .quick-filter-overlay.hiding {
+      animation: overlayFadeOut 0.3s ease;
+    }
+
+    @keyframes popupFadeOut {
+      from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+      }
+    }
+
+    @keyframes overlayFadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .quick-filter-popup input:focus,
+    .quick-filter-popup select:focus {
+      outline: none;
+      border-color: #337ab7;
+      box-shadow: 0 0 0 3px rgba(51, 122, 183, 0.1);
+    }
+    .quick-filter-popup input:hover,
+    .quick-filter-popup select:hover {
+      border-color: #337ab7;
+    }
+    #cancel-filter:hover,
+    #apply-filter:hover {
+      background-color: #286090;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Dark mode styles
+  if (document.body.classList.contains("dark")) {
+    popup.style.background = "#34353b";
+    popup.style.color = "#ffffff";
+    const inputs = popup.querySelectorAll("input, select");
+    inputs.forEach((input) => {
+      input.style.background = "#232327";
+      input.style.color = "#ffffff";
+      input.style.border = "1px solid #666";
+    });
+
+    // Update dark mode specific hover styles
+    const darkStyle = document.createElement("style");
+    darkStyle.textContent = `
+      .dark .quick-filter-popup input:hover,
+      .dark .quick-filter-popup select:hover {
+        border-color: #4a89dc;
+      }
+      .dark #cancel-filter,
+      .dark #apply-filter {
+        color: #ffffff;
+        background: #337ab7;
+      }
+      .dark #cancel-filter:hover,
+      .dark #apply-filter:hover {
+        background-color: #286090;
+      }
+    `;
+    document.head.appendChild(darkStyle);
+  }
+
+  // Handle reset
+  document.getElementById("reset-filter").addEventListener("click", () => {
+    // Check if any filters are active before resetting
+    const hasActiveFilters =
+      document.getElementById("anime-name").value.trim() ||
+      document.getElementById("encoder-name").value.trim() ||
+      document.getElementById("quality").value ||
+      document.getElementById("format").value ||
+      document.getElementById("source").value ||
+      document.getElementById("category").value !== "0" ||
+      document.getElementById("dual-audio").checked;
+
+    // Only show reset notification if there were active filters
+    if (hasActiveFilters) {
+      document.getElementById("anime-name").value = "";
+      document.getElementById("encoder-name").value = "";
+      document.getElementById("quality").value = "";
+      document.getElementById("format").value = "";
+      document.getElementById("source").value = "";
+      document.getElementById("category").value = "0";
+      document.getElementById("dual-audio").checked = false;
+      showNotification("All filters have been reset", true);
+    } else {
+      showNotification("No active filters to reset", false);
+    }
+  });
+
+  // Handle search
+  document.getElementById("apply-filter").addEventListener("click", () => {
+    const searchParams = [];
+    const category = document.getElementById("category").value;
+
+    const animeName = document.getElementById("anime-name").value.trim();
+    const encoder = document.getElementById("encoder-name").value.trim();
+    const quality = document.getElementById("quality").value;
+    const format = document.getElementById("format").value;
+    const source = document.getElementById("source").value;
+    const dualAudio = document.getElementById("dual-audio").checked;
+
+    if (animeName) searchParams.push(animeName);
+    if (encoder) searchParams.push(encoder);
+    if (quality) searchParams.push(quality);
+    if (format) searchParams.push(format);
+    if (source) searchParams.push(source);
+    if (dualAudio) searchParams.push("Dual");
+
+    // Check if any filter option is selected
+    const hasFilters =
+      animeName ||
+      encoder ||
+      quality ||
+      format ||
+      source ||
+      dualAudio ||
+      category;
+
+    if (!hasFilters) {
+      showNotification(
+        "No filter options selected. Please select at least one option to search.",
+        false
+      );
+      return;
+    }
+
+    const searchQuery = searchParams.join(" ");
+    const categoryParam = category === "0" ? "0_0" : `1_${category}`;
+    window.location.href = `${
+      window.location.origin
+    }/?f=0&c=${categoryParam}&q=${encodeURIComponent(searchQuery)}`;
+  });
+
+  // Handle cancel
+  const closePopup = () => {
+    popup.classList.add("hiding");
+    overlay.classList.add("hiding");
+    document.body.style.overflow = "";
+
+    // Wait for animations to finish before removing elements
+    popup.addEventListener(
+      "animationend",
+      () => {
+        popup.remove();
+      },
+      { once: true }
+    );
+
+    overlay.addEventListener(
+      "animationend",
+      () => {
+        overlay.remove();
+      },
+      { once: true }
+    );
+  };
+
+  document
+    .getElementById("cancel-filter")
+    .addEventListener("click", closePopup);
+  overlay.addEventListener("click", closePopup);
 }
 
 // Initialize the extension when the page loads

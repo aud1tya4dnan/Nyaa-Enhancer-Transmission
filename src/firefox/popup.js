@@ -17,7 +17,11 @@ document.querySelectorAll(".nav-button").forEach((button) => {
 
 // Function to update dependent toggles
 function updateDependentToggles(buttonsEnabled) {
-  const dependentToggles = ["displayNameToggle", "zipToggle"];
+  const dependentToggles = [
+    "displayNameToggle",
+    "zipToggle",
+    "showQuickFilterToggle",
+  ];
 
   dependentToggles.forEach((toggleId) => {
     const toggle = document.querySelector(`[data-toggle="${toggleId}"]`);
@@ -44,6 +48,7 @@ browser.storage.sync.get(
     showButtons: true,
     showATLinks: true,
     showMagnetButtons: true,
+    showQuickFilter: true,
     changelogDismissed: false,
   },
   (items) => {
@@ -62,6 +67,9 @@ browser.storage.sync.get(
     document
       .querySelector('[data-toggle="showMagnetButtonsToggle"]')
       .setAttribute("aria-checked", items.showMagnetButtons);
+    document
+      .querySelector('[data-toggle="showQuickFilterToggle"]')
+      .setAttribute("aria-checked", items.showQuickFilter);
     document
       .querySelector('[data-toggle="changelogToggle"]')
       .setAttribute("aria-checked", !items.changelogDismissed);
@@ -134,6 +142,19 @@ document.querySelectorAll(".toggle-button").forEach((button) => {
           tempDismissed: !newState,
         });
         return;
+      case "showQuickFilterToggle":
+        setting = "showQuickFilter";
+        browser.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            browser.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "showQuickFilter",
+              value: newState,
+            });
+          }
+        );
+        break;
     }
     browser.storage.sync.set({ [setting]: newState });
   });
