@@ -50,6 +50,13 @@ chrome.storage.sync.get(
     showMagnetButtons: true,
     showQuickFilter: true,
     changelogDismissed: false,
+    hideDeadTorrents: false,
+    keywords: [],
+    keywordFilterEnabled: false,
+    showFilterNotifications: true,
+    hideComments: false,
+    fileSizeFilterEnabled: false,
+    fileSizeRange: "less_than_256mb",
   },
   (items) => {
     document
@@ -73,9 +80,30 @@ chrome.storage.sync.get(
     document
       .querySelector('[data-toggle="changelogToggle"]')
       .setAttribute("aria-checked", !items.changelogDismissed);
+    document
+      .querySelector('[data-toggle="hideDeadTorrentsToggle"]')
+      .setAttribute("aria-checked", items.hideDeadTorrents);
+    document
+      .querySelector('[data-toggle="keywordFilterToggle"]')
+      .setAttribute("aria-checked", items.keywordFilterEnabled);
+    document
+      .querySelector('[data-toggle="showFilterNotificationsToggle"]')
+      .setAttribute("aria-checked", items.showFilterNotifications);
+    document
+      .querySelector('[data-toggle="hideCommentsToggle"]')
+      .setAttribute("aria-checked", items.hideComments);
+    document
+      .querySelector('[data-toggle="fileSizeFilterToggle"]')
+      .setAttribute("aria-checked", items.fileSizeFilterEnabled);
 
     // Initialize dependent toggles state
     updateDependentToggles(items.showButtons);
+
+    displayKeywords(items.keywords);
+
+    const sizeSelect = document.getElementById("sizeRangeSelect");
+    sizeSelect.value = items.fileSizeRange;
+    sizeSelect.disabled = !items.fileSizeFilterEnabled;
   }
 );
 
@@ -155,6 +183,63 @@ document.querySelectorAll(".toggle-button").forEach((button) => {
           }
         );
         break;
+      case "hideDeadTorrentsToggle":
+        setting = "hideDeadTorrents";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "hideDeadTorrents",
+              value: newState,
+            });
+          }
+        );
+        break;
+      case "keywordFilterToggle":
+        setting = "keywordFilterEnabled";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "keywordFilterEnabled",
+              value: newState,
+            });
+          }
+        );
+        break;
+      case "showFilterNotificationsToggle":
+        setting = "showFilterNotifications";
+        chrome.storage.sync.set({ [setting]: newState });
+        break;
+      case "hideCommentsToggle":
+        setting = "hideComments";
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "hideComments",
+              value: newState,
+            });
+          }
+        );
+        break;
+      case "fileSizeFilterToggle":
+        setting = "fileSizeFilterEnabled";
+        document.getElementById("sizeRangeSelect").disabled = !newState;
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "fileSizeFilterEnabled",
+              value: newState,
+            });
+          }
+        );
+        break;
     }
     chrome.storage.sync.set({ [setting]: newState });
   });
@@ -166,3 +251,104 @@ fetch(chrome.runtime.getURL("manifest.json"))
   .then((manifest) => {
     document.querySelector(".version-number").textContent = manifest.version;
   });
+
+function displayKeywords(keywords) {
+  const keywordsList = document.getElementById("keywords-list");
+  keywordsList.innerHTML = "";
+
+  keywords.forEach((keyword) => {
+    const item = document.createElement("div");
+    item.className = "keyword-item";
+    item.innerHTML = `
+      <span>${keyword}</span>
+      <button class="keyword-remove">Remove</button>
+    `;
+
+    item.querySelector(".keyword-remove").addEventListener("click", () => {
+      removeKeyword(keyword);
+    });
+
+    keywordsList.appendChild(item);
+  });
+}
+
+function addKeyword() {
+  const input = document.getElementById("keyword-input");
+  const keyword = input.value.trim();
+
+  if (keyword) {
+    chrome.storage.sync.get({ keywords: [] }, (items) => {
+      const keywords = items.keywords;
+      if (!keywords.includes(keyword)) {
+        keywords.push(keyword);
+        chrome.storage.sync.set({ keywords }, () => {
+          displayKeywords(keywords);
+          input.value = "";
+
+          // Notify content script to update filters
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "keywordsUpdated",
+              keywords,
+            });
+          });
+        });
+      }
+    });
+  }
+}
+
+function removeKeyword(keywordToRemove) {
+  chrome.storage.sync.get({ keywords: [] }, (items) => {
+    const keywords = items.keywords.filter((k) => k !== keywordToRemove);
+    chrome.storage.sync.set({ keywords }, () => {
+      displayKeywords(keywords);
+
+      // Notify content script to update filters
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: "keywordsUpdated",
+          keywords,
+        });
+      });
+    });
+  });
+}
+
+function removeAllKeywords() {
+  chrome.storage.sync.set({ keywords: [] }, () => {
+    displayKeywords([]);
+
+    // Notify content script to update filters
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: "keywordsUpdated",
+        keywords: [],
+      });
+    });
+  });
+}
+
+// Add event listeners
+document.getElementById("add-keyword").addEventListener("click", addKeyword);
+document.getElementById("keyword-input").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    addKeyword();
+  }
+});
+document
+  .getElementById("remove-all-keywords")
+  .addEventListener("click", removeAllKeywords);
+
+// Add size range change handler
+document.getElementById("sizeRangeSelect").addEventListener("change", (e) => {
+  const newValue = e.target.value;
+  chrome.storage.sync.set({ fileSizeRange: newValue });
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {
+      type: "settingChanged",
+      setting: "fileSizeRange",
+      value: newValue,
+    });
+  });
+});

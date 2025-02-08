@@ -6,11 +6,34 @@
   </head>
   <body>
     <div class="nav-container">
+      <button class="nav-button" data-tab="keyword-filter">
+        Keyword Filter
+      </button>
       <button class="nav-button active" data-tab="settings">Settings</button>
       <button class="nav-button" data-tab="about">About</button>
     </div>
 
     <div class="content-container">
+      <div id="keyword-filter" class="tab-content">
+        <div class="keyword-input-container">
+          <input
+            type="text"
+            id="keyword-input"
+            placeholder="Enter keyword to filter"
+            class="keyword-input"
+          />
+          <button id="add-keyword" class="keyword-add-button">Add</button>
+        </div>
+        <div class="keyword-actions">
+          <button id="remove-all-keywords" class="keyword-remove-all">
+            Remove All
+          </button>
+        </div>
+        <div id="keywords-list" class="keywords-list">
+          <!-- Keywords will be added here dynamically -->
+        </div>
+      </div>
+
       <div id="settings" class="tab-content active">
         <!-- Download Settings -->
         <div class="settings-category">
@@ -56,12 +79,91 @@
           </div>
 
           <div class="setting-item">
-            <span>Show Mgnet Copy Buttons</span>
+            <span>Show Magnet Copy Buttons</span>
             <div class="toggle-container">
               <button
                 class="toggle-button"
                 data-toggle="showMagnetButtonsToggle"
               >
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Settings (Add this before Additional Features) -->
+        <div class="settings-category">
+          <h3 class="category-title">Filter Settings</h3>
+          <div class="setting-item">
+            <span>Hide dead torrents (0 S/L)</span>
+            <div class="toggle-container">
+              <button
+                class="toggle-button"
+                data-toggle="hideDeadTorrentsToggle"
+              >
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <span>Enable keyword filtering</span>
+            <div class="toggle-container">
+              <button class="toggle-button" data-toggle="keywordFilterToggle">
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <span>Show filter notifications</span>
+            <div class="toggle-container">
+              <button
+                class="toggle-button"
+                data-toggle="showFilterNotificationsToggle"
+              >
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <span>Filter by file size</span>
+            <div class="toggle-container">
+              <button class="toggle-button" data-toggle="fileSizeFilterToggle">
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="setting-item size-range-container"
+            style="margin-top: 8px"
+          >
+            <select
+              id="sizeRangeSelect"
+              style="width: 100%; padding: 5px; border-radius: 4px"
+              disabled
+            >
+              <option value="less_than_256mb">Less than 256 MB</option>
+              <option value="less_than_512mb">Less than 512 MB</option>
+              <option value="less_than_768mb">Less than 768 MB</option>
+              <option value="less_than_1gb">Less than 1 GiB</option>
+              <option value="greater_than_1gb">Greater than 1 GiB</option>
+              <option value="greater_than_5gb">Greater than 5 GiB</option>
+              <option value="greater_than_10gb">Greater than 10 GiB</option>
+              <option value="greater_than_20gb">Greater than 20 GiB</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- View Page Settings -->
+        <div class="settings-category">
+          <h3 class="category-title">Torrent View Page Settings</h3>
+          <div class="setting-item">
+            <span>Hide Comments</span>
+            <div class="toggle-container">
+              <button class="toggle-button" data-toggle="hideCommentsToggle">
                 <span class="toggle-indicator"></span>
               </button>
             </div>

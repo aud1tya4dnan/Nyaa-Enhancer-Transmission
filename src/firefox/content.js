@@ -10,15 +10,29 @@ function loadStoredPreferences() {
         // - useDisplayName: whether to use anime titles for filenames
         // - useZip: whether to combine downloads into a ZIP file
         // - showButtons: whether to show button controls
-        // - showATLinks: whether to show AnimeToSho links
+        // - showATLinks: whether to show Animetosho links
         // - showMagnetButtons: whether to show magnet copy buttons
         // - showQuickFilter: whether to show the Quick Filter button
+        // - hideDeadTorrents: whether to hide dead torrents
+        // - keywords: array of keywords for filtering
+        // - keywordFilterEnabled: whether keyword filtering is enabled
+        // - showFilterNotifications: whether to show filter notifications
+        // - hideComments: whether to hide comments on view pages
+        // - fileSizeFilterEnabled: whether to enable file size filtering
+        // - fileSizeRange: the range for file size filtering
         useDisplayName: true,
         useZip: true,
         showButtons: true,
         showATLinks: true,
         showMagnetButtons: true,
         showQuickFilter: true,
+        hideDeadTorrents: false,
+        keywords: [],
+        keywordFilterEnabled: false,
+        showFilterNotifications: true,
+        hideComments: false,
+        fileSizeFilterEnabled: false,
+        fileSizeRange: "less_than_1gb",
       },
       (items) => {
         resolve(items);
@@ -122,7 +136,7 @@ async function addCopyButton() {
   const quickFilterButton = document.createElement("button");
   quickFilterButton.className = "copy-magnets-button quick-filter-button";
   quickFilterButton.style.display = prefs.showQuickFilter ? "block" : "none";
-  quickFilterButton.innerHTML = '<i class="fa fa-filter"></i> Quick Filter';
+  quickFilterButton.innerHTML = '<i class="fa fa-bolt"></i> Quick Search';
   quickFilterButton.addEventListener("click", showQuickFilterPopup);
 
   buttonContainer.appendChild(copyButton);
@@ -359,8 +373,11 @@ function copyAllMagnets() {
   const allMagnets = [];
   const rows = document.querySelectorAll("table.torrent-list tbody tr");
 
-  // Loop through all rows and collect all magnet links
+  // Loop through all visible rows and collect magnet links
   rows.forEach((row) => {
+    // Skip hidden rows (dead torrents)
+    if (row.style.display === "none") return;
+
     const magnetLink = row.querySelector('a[href^="magnet:"]');
     if (magnetLink) {
       allMagnets.push(magnetLink.href);
@@ -467,8 +484,11 @@ async function downloadAllTorrents() {
   const allTorrents = [];
   const rows = document.querySelectorAll("table.torrent-list tbody tr");
 
-  // Collect information about all torrents
+  // Collect information about all visible torrents
   rows.forEach((row) => {
+    // Skip hidden rows (dead torrents)
+    if (row.style.display === "none") return;
+
     const torrentLink = row.querySelector('a[href$=".torrent"]');
     const title = getTitleFromRow(row);
     if (torrentLink && title) {
@@ -521,7 +541,16 @@ async function downloadTorrentsAsZip(torrents, zipName) {
     // Update initial progress
     progressNotification.textContent = `Progress: 0/${torrents.length} files`;
 
-    // Process torrents sequentially with delay instead of in parallel
+    // Helper function to convert Blob to Base64
+    const blobToBase64 = (blob) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    };
+
     for (const torrent of torrents) {
       try {
         // Add delay between requests (500ms)
@@ -537,15 +566,15 @@ async function downloadTorrentsAsZip(torrents, zipName) {
 
         // Get the blob with explicit type
         const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
+        const base64Data = await blobToBase64(blob);
 
         // Use appropriate filename based on stored preference
         const filename = prefs.useDisplayName
           ? torrent.filename + ".torrent"
           : torrent.url.split("/").pop();
 
-        // Add file to ZIP using arrayBuffer
-        zip.file(filename, arrayBuffer);
+        // Add file to ZIP using base64
+        zip.file(filename, base64Data.split(",")[1], { base64: true });
 
         // Update progress notification
         completedDownloads++;
@@ -687,9 +716,16 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added Quick Filter feature to easily search for specific anime, encoders, quality, format, and source<br>
-        • Added Invert Selection button<br>
-        • Added ability to select everything in between two checkboxes (Shift+Click)
+        • Added organized categories in settings menu for easier navigation<br>
+        • Added new filtering options:<br>
+        &nbsp;&nbsp;- Hide dead torrents (0 seeders & 0 leechers)<br>
+        &nbsp;&nbsp;- Filter torrents by keywords<br>
+        &nbsp;&nbsp;- Filter torrents by file size<br>
+        • Added new view page features:<br>
+        &nbsp;&nbsp;- Copy Magnet button on torrent pages<br>
+        &nbsp;&nbsp;- Option to hide comments<br>
+        • Removed support for nyaa.eu domain due to compatibility issues<br>
+        • Renamed Quick Filter to Quick Search
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -738,72 +774,11 @@ browser.runtime.onMessage.addListener((message) => {
 async function handleSettingChange(setting, value) {
   switch (setting) {
     case "showButtons":
-      const buttonContainer = document.querySelector(".button-container");
-      if (!value) {
-        // Handle button container fade out
-        if (buttonContainer) {
-          buttonContainer.classList.add("hiding");
-          await new Promise((r) => setTimeout(r, 300)); // Wait for animation
-          buttonContainer.style.display = "none";
-        }
-        // Remove checkbox header and cells immediately
-        const checkboxHeader = document.querySelector(
-          ".magnet-checkbox-column"
-        );
-        if (checkboxHeader) checkboxHeader.remove();
-        document.querySelectorAll(".magnet-checkbox").forEach((checkbox) => {
-          const cell = checkbox.closest("td");
-          if (cell) cell.remove();
-        });
+      if (value) {
+        initializeExtension(false);
       } else {
-        // If enabling buttons, remove old container and create new one
-        if (buttonContainer) {
-          buttonContainer.remove();
-        }
-        await addCopyButton();
-
-        // Add only the checkbox column
-        const headerRow = document.querySelector("table.torrent-list thead tr");
-        if (headerRow) {
-          const checkboxHeader = document.createElement("th");
-          checkboxHeader.className = "magnet-checkbox-column text-center";
-          headerRow.appendChild(checkboxHeader);
-        }
-
-        // Add checkbox cells
-        const rows = document.querySelectorAll("table.torrent-list tbody tr");
-        rows.forEach((row) => {
-          const checkboxCell = document.createElement("td");
-          checkboxCell.className = "text-center";
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.className = "magnet-checkbox";
-
-          // Add shift+click handler
-          checkbox.addEventListener("click", function (e) {
-            if (!lastChecked) {
-              lastChecked = this;
-              return;
-            }
-
-            if (e.shiftKey) {
-              const checkboxes = Array.from(
-                document.querySelectorAll(".magnet-checkbox")
-              );
-              const start = checkboxes.indexOf(this);
-              const end = checkboxes.indexOf(lastChecked);
-
-              checkboxes
-                .slice(Math.min(start, end), Math.max(start, end) + 1)
-                .forEach((checkbox) => (checkbox.checked = this.checked));
-            }
-
-            lastChecked = this;
-          });
-
-          checkboxCell.appendChild(checkbox);
-          row.appendChild(checkboxCell);
-        });
+        // Remove button container if it exists
+        document.querySelector(".button-container")?.remove();
       }
       break;
     case "showMagnetButtons":
@@ -820,6 +795,14 @@ async function handleSettingChange(setting, value) {
         document.querySelectorAll(".magnet-column").forEach((cell) => {
           cell.remove();
         });
+
+        // Remove magnet button from view page if it exists
+        if (window.location.pathname.startsWith("/view/")) {
+          const magnetButton = document.querySelector(".magnet-button");
+          if (magnetButton) {
+            magnetButton.remove();
+          }
+        }
       } else {
         // Add only the magnet column
         const headerRow = document.querySelector("table.torrent-list thead tr");
@@ -896,6 +879,11 @@ async function handleSettingChange(setting, value) {
             row.appendChild(magnetCell);
           }
         });
+
+        // Add magnet button to view page if we're on one
+        if (window.location.pathname.startsWith("/view/")) {
+          addMagnetButtonToViewPage();
+        }
       }
       break;
     case "showATLinks":
@@ -1029,6 +1017,67 @@ async function handleSettingChange(setting, value) {
         }
       }
       break;
+    case "hideDeadTorrents":
+      // Don't reset display state when disabling dead torrents filter
+      const prefs = await loadStoredPreferences();
+      const rows = document.querySelectorAll("table.torrent-list tbody tr");
+
+      // Apply all active filters in one pass to prevent flicker
+      rows.forEach((row) => {
+        const title = getTitleFromRow(row);
+        const sizeCell = row.querySelector("td:nth-of-type(4)");
+        const seedersCell = row.querySelector("td:nth-of-type(6)");
+        const leechersCell = row.querySelector("td:nth-of-type(7)");
+
+        const seeders = seedersCell ? parseInt(seedersCell.textContent) : 0;
+        const leechers = leechersCell ? parseInt(leechersCell.textContent) : 0;
+        const sizeInBytes = sizeCell ? convertToBytes(sizeCell.textContent) : 0;
+
+        // Check all active filters at once
+        const isDead = value && seeders === 0 && leechers === 0;
+        const wrongSize =
+          prefs.fileSizeFilterEnabled &&
+          !isInSizeRange(sizeInBytes, prefs.fileSizeRange);
+        const containsKeyword =
+          prefs.keywordFilterEnabled &&
+          prefs.keywords.some((keyword) =>
+            title?.toLowerCase().includes(keyword.toLowerCase())
+          );
+
+        // Only update display if needed
+        const shouldHide = isDead || wrongSize || containsKeyword;
+        if (shouldHide) {
+          row.style.display = "none";
+        } else {
+          row.style.display = "";
+        }
+      });
+
+      // Show notification only if dead torrents filter was disabled
+      if (!value) {
+        showNotification("Dead torrents filter disabled", true);
+      }
+      break;
+    case "keywordFilterEnabled":
+      filterByKeywords();
+      break;
+    case "showFilterNotifications":
+      // Implementation for showFilterNotifications setting
+      break;
+    case "hideComments":
+      if (window.location.pathname.startsWith("/view/")) {
+        const comments = document.getElementById("comments");
+        if (comments) {
+          comments.style.display = value ? "none" : "block";
+        }
+      }
+      break;
+    case "fileSizeFilterEnabled":
+      filterByFileSize();
+      break;
+    case "fileSizeRange":
+      filterByFileSize();
+      break;
   }
 }
 
@@ -1090,8 +1139,12 @@ function invertSelection() {
   let invertedCount = 0;
 
   checkboxes.forEach((checkbox) => {
-    checkbox.checked = !checkbox.checked;
-    if (checkbox.checked) invertedCount++;
+    // Only invert selection for visible rows
+    const row = checkbox.closest("tr");
+    if (row && row.style.display !== "none") {
+      checkbox.checked = !checkbox.checked;
+      if (checkbox.checked) invertedCount++;
+    }
   });
 
   showNotification(
@@ -1120,7 +1173,7 @@ function showQuickFilterPopup() {
   `;
 
   const content = `
-    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Quick Filter</h3>
+    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Quick Search</h3>
     
     <div class="filter-group" style="margin-bottom: 18px;">
       <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Anime Name:</label>
@@ -1226,14 +1279,24 @@ function showQuickFilterPopup() {
     </div>
 
     <div class="filter-group" style="margin-bottom: 25px;">
-      <label style="display: flex; align-items: center; font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="dual-audio" style="
-          margin: 0;
-          margin-right: 8px;
-          cursor: pointer;
-        ">
-        <span style="font-weight: 500;">Dual Audio</span>
-      </label>
+      <div style="display: flex; gap: 20px;">
+        <label style="display: flex; align-items: center; font-size: 14px; cursor: pointer;">
+          <input type="checkbox" id="dual-audio" style="
+            margin: 0;
+            margin-right: 8px;
+            cursor: pointer;
+          ">
+          <span style="font-weight: 500;">Dual Audio</span>
+        </label>
+        <label style="display: flex; align-items: center; font-size: 14px; cursor: pointer;">
+          <input type="checkbox" id="season-pack" style="
+            margin: 0;
+            margin-right: 8px;
+            cursor: pointer;
+          ">
+          <span style="font-weight: 500;">Season Pack</span>
+        </label>
+      </div>
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -1390,6 +1453,21 @@ function showQuickFilterPopup() {
     document.head.appendChild(darkStyle);
   }
 
+  // Add Enter key handler for text inputs
+  const textInputs = [
+    document.getElementById("anime-name"),
+    document.getElementById("encoder-name"),
+  ];
+
+  textInputs.forEach((input) => {
+    input.addEventListener("keypress", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault(); // Prevent default form submission
+        document.getElementById("apply-filter").click();
+      }
+    });
+  });
+
   // Handle reset
   document.getElementById("reset-filter").addEventListener("click", () => {
     // Check if any filters are active before resetting
@@ -1400,7 +1478,8 @@ function showQuickFilterPopup() {
       document.getElementById("format").value ||
       document.getElementById("source").value ||
       document.getElementById("category").value !== "0" ||
-      document.getElementById("dual-audio").checked;
+      document.getElementById("dual-audio").checked ||
+      document.getElementById("season-pack").checked;
 
     // Only show reset notification if there were active filters
     if (hasActiveFilters) {
@@ -1411,6 +1490,7 @@ function showQuickFilterPopup() {
       document.getElementById("source").value = "";
       document.getElementById("category").value = "0";
       document.getElementById("dual-audio").checked = false;
+      document.getElementById("season-pack").checked = false;
       showNotification("All filters have been reset", true);
     } else {
       showNotification("No active filters to reset", false);
@@ -1428,6 +1508,7 @@ function showQuickFilterPopup() {
     const format = document.getElementById("format").value;
     const source = document.getElementById("source").value;
     const dualAudio = document.getElementById("dual-audio").checked;
+    const seasonPack = document.getElementById("season-pack").checked;
 
     if (animeName) searchParams.push(animeName);
     if (encoder) searchParams.push(encoder);
@@ -1435,6 +1516,7 @@ function showQuickFilterPopup() {
     if (format) searchParams.push(format);
     if (source) searchParams.push(source);
     if (dualAudio) searchParams.push("Dual");
+    if (seasonPack) searchParams.push("Season");
 
     // Check if any filter option is selected
     const hasFilters =
@@ -1444,6 +1526,7 @@ function showQuickFilterPopup() {
       format ||
       source ||
       dualAudio ||
+      seasonPack ||
       category;
 
     if (!hasFilters) {
@@ -1491,20 +1574,368 @@ function showQuickFilterPopup() {
   overlay.addEventListener("click", closePopup);
 }
 
+// Function to hide dead torrents
+async function filterDeadTorrents(isInitialLoad = false) {
+  const prefs = await loadStoredPreferences();
+  if (!prefs.hideDeadTorrents) {
+    // Instead of showing all rows, reapply other active filters
+    const rows = document.querySelectorAll("table.torrent-list tbody tr");
+    rows.forEach((row) => (row.style.display = ""));
+
+    // Reapply other active filters
+    if (prefs.keywordFilterEnabled) {
+      filterByKeywords(false);
+    }
+    if (prefs.fileSizeFilterEnabled) {
+      filterByFileSize();
+    }
+    return;
+  }
+
+  const rows = document.querySelectorAll("table.torrent-list tbody tr");
+  let hiddenCount = 0;
+
+  rows.forEach((row) => {
+    // Changed selectors to be more specific and reliable
+    const seedersCell = row.querySelector("td:nth-of-type(6)");
+    const leechersCell = row.querySelector("td:nth-of-type(7)");
+
+    if (seedersCell && leechersCell) {
+      const seeders = parseInt(seedersCell.textContent);
+      const leechers = parseInt(leechersCell.textContent);
+
+      if (seeders === 0 && leechers === 0) {
+        row.style.display = "none";
+        hiddenCount++;
+      } else {
+        // Only show if not hidden by other filters
+        if (row.style.display === "none") {
+          const title = getTitleFromRow(row);
+          const sizeCell = row.querySelector("td:nth-of-type(4)");
+          const sizeInBytes = sizeCell
+            ? convertToBytes(sizeCell.textContent)
+            : 0;
+
+          // Check other filters before showing
+          const showByKeyword =
+            !prefs.keywordFilterEnabled ||
+            !prefs.keywords.some((keyword) =>
+              title?.toLowerCase().includes(keyword.toLowerCase())
+            );
+          const showBySize =
+            !prefs.fileSizeFilterEnabled ||
+            isInSizeRange(sizeInBytes, prefs.fileSizeRange);
+
+          if (showByKeyword && showBySize) {
+            row.style.display = "";
+          }
+        }
+      }
+    }
+  });
+
+  if (hiddenCount > 0 && prefs.showFilterNotifications && isInitialLoad) {
+    showNotification(
+      `Hidden ${hiddenCount} dead torrent${hiddenCount === 1 ? "" : "s"}`,
+      true
+    );
+  }
+}
+
+// Add this after filterDeadTorrents function
+function observeTableChanges() {
+  const tableBody = document.querySelector("table.torrent-list tbody");
+  if (!tableBody) return;
+
+  let isInitialLoad = true;
+  const observer = new MutationObserver((mutations) => {
+    if (isInitialLoad) {
+      isInitialLoad = false;
+      return;
+    }
+    filterDeadTorrents();
+  });
+
+  observer.observe(tableBody, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+// Add new function for keyword filtering
+async function filterByKeywords(isInitialLoad = false) {
+  const prefs = await loadStoredPreferences();
+  if (!prefs.keywordFilterEnabled) {
+    // Show all rows that aren't hidden by other filters
+    const rows = document.querySelectorAll("table.torrent-list tbody tr");
+    rows.forEach((row) => {
+      if (row.style.display === "none") {
+        // Check other active filters before showing
+        const seedersCell = row.querySelector("td:nth-of-type(6)");
+        const leechersCell = row.querySelector("td:nth-of-type(7)");
+        const sizeCell = row.querySelector("td:nth-of-type(4)");
+
+        const seeders = seedersCell ? parseInt(seedersCell.textContent) : 0;
+        const leechers = leechersCell ? parseInt(leechersCell.textContent) : 0;
+        const sizeInBytes = sizeCell ? convertToBytes(sizeCell.textContent) : 0;
+
+        const showByDead = !(
+          seeders === 0 &&
+          leechers === 0 &&
+          prefs.hideDeadTorrents
+        );
+        const showBySize =
+          !prefs.fileSizeFilterEnabled ||
+          isInSizeRange(sizeInBytes, prefs.fileSizeRange);
+
+        if (showByDead && showBySize) {
+          row.style.display = "";
+        }
+      }
+    });
+    return;
+  }
+
+  const rows = document.querySelectorAll("table.torrent-list tbody tr");
+  let hiddenCount = 0;
+
+  rows.forEach((row) => {
+    const title = getTitleFromRow(row);
+    if (!title) return;
+
+    // Check all active filters
+    const seedersCell = row.querySelector("td:nth-of-type(6)");
+    const leechersCell = row.querySelector("td:nth-of-type(7)");
+    const sizeCell = row.querySelector("td:nth-of-type(4)");
+
+    const seeders = seedersCell ? parseInt(seedersCell.textContent) : 0;
+    const leechers = leechersCell ? parseInt(leechersCell.textContent) : 0;
+    const sizeInBytes = sizeCell ? convertToBytes(sizeCell.textContent) : 0;
+
+    const containsKeyword = prefs.keywords.some((keyword) =>
+      title.toLowerCase().includes(keyword.toLowerCase())
+    );
+    const isDead = seeders === 0 && leechers === 0 && prefs.hideDeadTorrents;
+    const wrongSize =
+      prefs.fileSizeFilterEnabled &&
+      !isInSizeRange(sizeInBytes, prefs.fileSizeRange);
+
+    if (containsKeyword || isDead || wrongSize) {
+      if (row.style.display !== "none") {
+        row.style.display = "none";
+        if (containsKeyword) hiddenCount++;
+      }
+    } else {
+      row.style.display = "";
+    }
+  });
+
+  if (hiddenCount > 0 && prefs.showFilterNotifications && isInitialLoad) {
+    showNotification(
+      `Hidden ${hiddenCount} torrent${
+        hiddenCount === 1 ? "" : "s"
+      } matching keywords`,
+      true
+    );
+  }
+}
+
+// Add to message listener
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "keywordsUpdated") {
+    browser.storage.sync.set({ keywords: message.keywords }, () => {
+      filterByKeywords();
+    });
+  }
+});
+
 // Initialize the extension when the page loads
-// This ensures the DOM is ready before we add our UI elements
 if (document.readyState === "loading") {
-  // If the document is still loading, wait for DOMContentLoaded
   document.addEventListener("DOMContentLoaded", () => {
-    addCopyButton();
-    addCheckboxColumn();
-    addAnimetoshoToViewPage();
-    showChangelog();
+    initializeExtension(true);
   });
 } else {
-  // If the document is already loaded, add UI elements immediately
+  initializeExtension(true);
+}
+
+async function initializeExtension(isInitialLoad = false) {
   addCopyButton();
   addCheckboxColumn();
   addAnimetoshoToViewPage();
+  addMagnetButtonToViewPage();
   showChangelog();
+  filterDeadTorrents(isInitialLoad);
+  observeTableChanges();
+  filterByKeywords(isInitialLoad);
+  toggleComments();
+  filterByFileSize();
+}
+
+async function addMagnetButtonToViewPage() {
+  // Check if we're on a view page
+  if (!window.location.pathname.startsWith("/view/")) return;
+
+  const prefs = await loadStoredPreferences();
+  if (!prefs.showMagnetButtons) return;
+
+  // Find the magnet link
+  const magnetLink = document.querySelector('a[href^="magnet:"]');
+  if (!magnetLink) return;
+
+  // Create the magnet button
+  const magnetButton = document.createElement("button");
+  magnetButton.className = "magnet-button";
+  magnetButton.innerHTML = '<i class="fa fa-magnet"></i> Copy';
+  magnetButton.style.fontFamily = "Segoe UI, Tahoma, sans-serif";
+  magnetButton.style.fontWeight = "500";
+  magnetButton.style.marginLeft = "10px";
+
+  // Add click handler
+  magnetButton.addEventListener("click", () => {
+    navigator.clipboard
+      .writeText(magnetLink.href)
+      .then(() => {
+        showNotification("Magnet link copied to clipboard!", true);
+      })
+      .catch((err) => {
+        console.error("Failed to copy magnet:", err);
+        showNotification("Failed to copy magnet link", false);
+      });
+  });
+
+  // Insert the button after the magnet link
+  magnetLink.parentNode.insertBefore(magnetButton, magnetLink.nextSibling);
+}
+
+async function toggleComments() {
+  // Only run on view pages
+  if (!window.location.pathname.startsWith("/view/")) return;
+
+  const prefs = await loadStoredPreferences();
+  const comments = document.getElementById("comments");
+  if (!comments) return;
+
+  // Set initial display style based on preference
+  comments.style.display = prefs.hideComments ? "none" : "block";
+}
+
+// Function to convert size string to bytes
+function convertToBytes(sizeStr) {
+  const [value, unit] = sizeStr.trim().split(" ");
+  const numValue = parseFloat(value);
+
+  switch (unit) {
+    case "Bytes":
+      return numValue;
+    case "KiB":
+      return numValue * 1024;
+    case "MiB":
+      return numValue * 1024 * 1024;
+    case "GiB":
+      return numValue * 1024 * 1024 * 1024;
+    case "TiB":
+      return numValue * 1024 * 1024 * 1024 * 1024;
+    default:
+      return 0;
+  }
+}
+
+// Function to check if size is within selected range
+function isInSizeRange(sizeInBytes, range) {
+  switch (range) {
+    case "less_than_256mb":
+      return sizeInBytes < 256 * 1024 * 1024;
+    case "less_than_512mb":
+      return sizeInBytes < 512 * 1024 * 1024;
+    case "less_than_768mb":
+      return sizeInBytes < 768 * 1024 * 1024;
+    case "less_than_1gb":
+      return sizeInBytes < 1024 * 1024 * 1024;
+    case "greater_than_1gb":
+      return sizeInBytes > 1024 * 1024 * 1024;
+    case "greater_than_5gb":
+      return sizeInBytes > 5 * 1024 * 1024 * 1024;
+    case "greater_than_10gb":
+      return sizeInBytes > 10 * 1024 * 1024 * 1024;
+    case "greater_than_20gb":
+      return sizeInBytes > 20 * 1024 * 1024 * 1024;
+    default:
+      return true;
+  }
+}
+
+async function filterByFileSize() {
+  const prefs = await loadStoredPreferences();
+  const rows = document.querySelectorAll("table.torrent-list tbody tr");
+  let hiddenCount = 0;
+
+  if (!prefs.fileSizeFilterEnabled) {
+    // Show all rows that aren't hidden by other filters
+    rows.forEach((row) => {
+      if (row.style.display === "none") {
+        const title = getTitleFromRow(row);
+        const seedersCell = row.querySelector("td:nth-of-type(6)");
+        const leechersCell = row.querySelector("td:nth-of-type(7)");
+
+        const seeders = seedersCell ? parseInt(seedersCell.textContent) : 0;
+        const leechers = leechersCell ? parseInt(leechersCell.textContent) : 0;
+
+        const showByDead = !(
+          seeders === 0 &&
+          leechers === 0 &&
+          prefs.hideDeadTorrents
+        );
+        const showByKeyword =
+          !prefs.keywordFilterEnabled ||
+          !prefs.keywords.some((keyword) =>
+            title?.toLowerCase().includes(keyword.toLowerCase())
+          );
+
+        if (showByDead && showByKeyword) {
+          row.style.display = "";
+        }
+      }
+    });
+    return;
+  }
+
+  rows.forEach((row) => {
+    const title = getTitleFromRow(row);
+    const sizeCell = row.querySelector("td:nth-of-type(4)");
+    if (!sizeCell) return;
+
+    // Check all active filters
+    const seedersCell = row.querySelector("td:nth-of-type(6)");
+    const leechersCell = row.querySelector("td:nth-of-type(7)");
+
+    const seeders = seedersCell ? parseInt(seedersCell.textContent) : 0;
+    const leechers = leechersCell ? parseInt(leechersCell.textContent) : 0;
+    const sizeInBytes = convertToBytes(sizeCell.textContent);
+
+    const wrongSize = !isInSizeRange(sizeInBytes, prefs.fileSizeRange);
+    const isDead = seeders === 0 && leechers === 0 && prefs.hideDeadTorrents;
+    const containsKeyword =
+      prefs.keywordFilterEnabled &&
+      prefs.keywords.some((keyword) =>
+        title?.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+    if (wrongSize || isDead || containsKeyword) {
+      if (row.style.display !== "none") {
+        row.style.display = "none";
+        if (wrongSize) hiddenCount++;
+      }
+    } else {
+      row.style.display = "";
+    }
+  });
+
+  if (hiddenCount > 0 && prefs.showFilterNotifications) {
+    showNotification(
+      `Hidden ${hiddenCount} torrent${
+        hiddenCount === 1 ? "" : "s"
+      } by file size`,
+      true
+    );
+  }
 }

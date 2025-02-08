@@ -160,3 +160,126 @@ body {
   color: #aaa;
   border-bottom-color: #444;
 }
+
+.keyword-input-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.keyword-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-weight: 500;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.keyword-add-button {
+  padding: 8px 16px;
+  background: #4caf50;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.keyword-add-button:hover {
+  background: #45a049;
+}
+
+.keywords-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keyword-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.keyword-remove {
+  background: #ff4444;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.keyword-remove:hover {
+  background: #cc0000;
+}
+
+.keyword-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.keyword-remove-all {
+  background: #ff4444;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  width: 100%;
+}
+
+.keyword-remove-all:hover {
+  background: #cc0000;
+}
+
+/* Size Range Select Styling */
+#sizeRangeSelect {
+  appearance: none;
+  background: #2a2a2a;
+  background-position: right 12px center;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 36px 8px 12px;
+  transition: all 0.2s ease;
+}
+
+#sizeRangeSelect:hover:not(:disabled) {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+#sizeRangeSelect:focus {
+  outline: none;
+  border-color: #666;
+  box-shadow: 0 0 0 2px rgba(102, 102, 102, 0.2);
+}
+
+#sizeRangeSelect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#sizeRangeSelect option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+}
