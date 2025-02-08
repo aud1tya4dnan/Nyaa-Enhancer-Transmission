@@ -11,7 +11,6 @@
     "storage",
     "activeTab",
     "*://*.nyaa.si/*",
-    "*://*.nyaa.eu/*",
     "*://*.nya.iss.one/*",
     "*://*.nyaa.ink/*",
     "*://*.nyaa.land/*",
@@ -27,7 +26,6 @@
     {
       "matches": [
         "*://*.nyaa.si/*",
-        "*://*.nyaa.eu/*",
         "*://*.nya.iss.one/*",
         "*://*.nyaa.ink/*",
         "*://*.nyaa.land/*",

@@ -1,7 +1,6 @@
 // Array of supported Nyaa domains from manifest.json
 const supportedDomains = [
   "nyaa.si",
-  "nyaa.eu",
   "nya.iss.one",
   "nyaa.ink",
   "nyaa.land",
@@ -14,24 +13,37 @@ function isNyaaSite(url) {
   return supportedDomains.some((domain) => url.includes(domain));
 }
 
-// Update badge when tabs change
-browser.tabs.onActivated.addListener(async (activeInfo) => {
-  const tab = await browser.tabs.get(activeInfo.tabId);
-  updateBadge(tab.url);
+// Update badge and popup state when tab changes
+browser.tabs.onActivated.addListener((activeInfo) => {
+  browser.tabs.get(activeInfo.tabId, (tab) => {
+    updateBadge(tab.url);
+    updatePopupState(tab.url);
+  });
 });
 
-// Update badge when URLs change
+// Update badge and popup state when URL changes
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
     updateBadge(changeInfo.url);
+    updatePopupState(changeInfo.url);
   }
 });
 
 function updateBadge(url) {
   if (url && isNyaaSite(url)) {
-    browser.browserAction.setBadgeText({ text: "On" });
-    browser.browserAction.setBadgeBackgroundColor({ color: "#4CAF50" });
+    browser.action.setBadgeText({ text: "On" });
+    browser.action.setBadgeBackgroundColor({ color: "#4CAF50" });
   } else {
-    browser.browserAction.setBadgeText({ text: "" });
+    browser.action.setBadgeText({ text: "" });
+  }
+}
+
+function updatePopupState(url) {
+  if (url && isNyaaSite(url)) {
+    browser.action.enable();
+    browser.action.setPopup({ popup: "popup.html" });
+  } else {
+    browser.action.disable();
+    browser.action.setPopup({ popup: "" });
   }
 }

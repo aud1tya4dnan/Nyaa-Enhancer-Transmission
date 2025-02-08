@@ -9,7 +9,6 @@
   "permissions": ["clipboardWrite", "storage", "activeTab"],
   "host_permissions": [
     "*://*.nyaa.si/*",
-    "*://*.nyaa.eu/*",
     "*://*.nya.iss.one/*",
     "*://*.nyaa.ink/*",
     "*://*.nyaa.land/*",
@@ -25,7 +24,6 @@
     {
       "matches": [
         "*://*.nyaa.si/*",
-        "*://*.nyaa.eu/*",
         "*://*.nya.iss.one/*",
         "*://*.nyaa.ink/*",
         "*://*.nyaa.land/*",
