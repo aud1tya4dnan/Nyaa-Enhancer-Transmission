@@ -164,7 +164,7 @@ Look for the green "On" badge in your browser toolbar to confirm the extension i
 
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the GPLv3 License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
