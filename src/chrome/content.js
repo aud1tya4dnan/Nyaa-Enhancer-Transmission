@@ -159,22 +159,30 @@ async function addCheckboxColumn() {
   const headerRow = document.querySelector("table.torrent-list thead tr");
   if (!headerRow) return;
 
-  // Add AT column header if enabled
-  if (prefs.showATLinks) {
+  // Add AT column header if enabled and doesn't exist
+  if (
+    prefs.showATLinks &&
+    !headerRow.querySelector('th.text-center[title="AT"]')
+  ) {
     const atHeader = document.createElement("th");
     atHeader.className = "text-center";
     atHeader.style.width = "70px";
     atHeader.textContent = "AT";
+    atHeader.title = "AT"; // Add title for identification
     const checkboxHeader = headerRow.querySelector(".magnet-checkbox-column");
     headerRow.insertBefore(atHeader, checkboxHeader);
   }
 
-  // Add Magnet column header if enabled
-  if (prefs.showMagnetButtons) {
+  // Add Magnet column header if enabled and doesn't exist
+  if (
+    prefs.showMagnetButtons &&
+    !headerRow.querySelector('th.text-center[title="Magnet"]')
+  ) {
     const magnetHeader = document.createElement("th");
     magnetHeader.className = "text-center";
     magnetHeader.style.width = "70px";
     magnetHeader.textContent = "Magnet";
+    magnetHeader.title = "Magnet"; // Add title for identification
     const checkboxHeader = headerRow.querySelector(".magnet-checkbox-column");
     const atHeader = Array.from(
       headerRow.querySelectorAll("th.text-center")
@@ -189,8 +197,11 @@ async function addCheckboxColumn() {
     }
   }
 
-  // Add checkbox column header only if buttons are enabled
-  if (prefs.showButtons) {
+  // Add checkbox column header only if buttons are enabled and doesn't exist
+  if (
+    prefs.showButtons &&
+    !headerRow.querySelector(".magnet-checkbox-column")
+  ) {
     const checkboxHeader = document.createElement("th");
     checkboxHeader.className = "magnet-checkbox-column text-center";
     headerRow.appendChild(checkboxHeader);
@@ -199,11 +210,11 @@ async function addCheckboxColumn() {
   // Keep track of last checked checkbox
   let lastChecked = null;
 
-  // Add checkbox cells
+  // Add cells only if they don't exist
   const rows = document.querySelectorAll("table.torrent-list tbody tr");
   rows.forEach((row) => {
-    // Create AT cell with link if enabled
-    if (prefs.showATLinks) {
+    // Add AT cell if enabled and doesn't exist
+    if (prefs.showATLinks && !row.querySelector(".at-column")) {
       const atCell = document.createElement("td");
       atCell.className = "text-center at-column";
 
@@ -223,11 +234,13 @@ async function addCheckboxColumn() {
           atCell.appendChild(atLink);
         }
       }
-      row.insertBefore(atCell, row.lastElementChild?.nextSibling);
+
+      const checkboxCell = row.querySelector(".magnet-checkbox")?.closest("td");
+      row.insertBefore(atCell, checkboxCell);
     }
 
-    // Create magnet cell if enabled
-    if (prefs.showMagnetButtons) {
+    // Add magnet cell if enabled and doesn't exist
+    if (prefs.showMagnetButtons && !row.querySelector(".magnet-column")) {
       const magnetCell = document.createElement("td");
       magnetCell.className = "text-center magnet-column";
 
@@ -254,18 +267,27 @@ async function addCheckboxColumn() {
           magnetCell.appendChild(magnetButton);
         }
       }
-      row.insertBefore(magnetCell, row.lastElementChild?.nextSibling);
+
+      const checkboxCell = row.querySelector(".magnet-checkbox")?.closest("td");
+      const atCell = row.querySelector(".at-column");
+
+      if (atCell) {
+        row.insertBefore(magnetCell, atCell.nextSibling);
+      } else if (checkboxCell) {
+        row.insertBefore(magnetCell, checkboxCell);
+      } else {
+        row.appendChild(magnetCell);
+      }
     }
 
-    // Add checkbox cell only if buttons are enabled
-    if (prefs.showButtons) {
+    // Add checkbox cell only if buttons are enabled and doesn't exist
+    if (prefs.showButtons && !row.querySelector(".magnet-checkbox")) {
       const checkboxCell = document.createElement("td");
       checkboxCell.className = "text-center";
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "magnet-checkbox";
 
-      // Add shift+click handler
       checkbox.addEventListener("click", function (e) {
         if (!lastChecked) {
           lastChecked = this;
@@ -716,16 +738,8 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added organized categories in settings menu for easier navigation<br>
-        • Added new filtering options:<br>
-        &nbsp;&nbsp;- Hide dead torrents (0 seeders & 0 leechers)<br>
-        &nbsp;&nbsp;- Filter torrents by keywords<br>
-        &nbsp;&nbsp;- Filter torrents by file size<br>
-        • Added new view page features:<br>
-        &nbsp;&nbsp;- Copy Magnet button on torrent pages<br>
-        &nbsp;&nbsp;- Option to hide comments<br>
-        • Removed support for nyaa.eu domain due to compatibility issues<br>
-        • Renamed Quick Filter to Quick Search
+        • Fixed bug where disabling "Show Button Controls" didn't properly remove checkbox columns<br>
+        • Fixed bug where re-enabling "Show Button Controls" caused duplicate AT and Magnet columns
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -779,6 +793,22 @@ async function handleSettingChange(setting, value) {
       } else {
         // Remove button container if it exists
         document.querySelector(".button-container")?.remove();
+
+        // Remove checkbox header and cells
+        const checkboxHeader = document.querySelector(
+          ".magnet-checkbox-column"
+        );
+        if (checkboxHeader) {
+          checkboxHeader.remove();
+        }
+
+        // Remove all checkbox cells
+        document.querySelectorAll(".magnet-checkbox").forEach((checkbox) => {
+          const cell = checkbox.closest("td");
+          if (cell) {
+            cell.remove();
+          }
+        });
       }
       break;
     case "showMagnetButtons":
