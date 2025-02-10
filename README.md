@@ -98,8 +98,8 @@ To install the extension in your browser, follow these steps.
 
 ### Installation
 
-**Chrome Web Store (still on 1.0.0 release - 1.4.2 currently pending, will update to 1.6.1 when 1.4.2 is approved 🤞):**  
-<a href="https://chromewebstore.google.com/detail/Nyaa-Enhancer/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
+**Chrome Web Store (still on 1.0.0 release - 1.6.2 currently pending):**  
+<a href="https://chromewebstore.google.com/detail/nyaa-enhancer/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
 </a>    
   
@@ -110,8 +110,8 @@ To install the extension in your browser, follow these steps.
 </a>    
   
 
-**Edge Add-Ons Store (still on 1.0.0 release - 1.6.1 currently pending):**  
-<a href="https://microsoftedge.microsoft.com/addons/detail/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
+**Edge Add-Ons Store (still on 1.0.0 release - 1.6.2 currently pending):**  
+<a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-magnet-helper/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
   
