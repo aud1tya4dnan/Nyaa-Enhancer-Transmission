@@ -111,7 +111,7 @@ To install the extension in your browser, follow these steps.
   
 
 **Edge Add-Ons Store (up-to-date at 1.6.2 currently):**  
-<a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-magnet-helper/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
+<a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-enhancer/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
   
