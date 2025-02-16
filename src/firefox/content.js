@@ -33,6 +33,7 @@ function loadStoredPreferences() {
         hideComments: false,
         fileSizeFilterEnabled: false,
         fileSizeRange: "less_than_1gb",
+        showChangelogNav: true, // Add this line
       },
       (items) => {
         resolve(items);
@@ -103,7 +104,7 @@ async function addCopyButton() {
 
   // Add before the "Clear Selection" button
   const invertButton = document.createElement("button");
-  invertButton.className = "copy-magnets-button magnet-button";
+  invertButton.className = "copy-magnets-button";
   invertButton.style.marginLeft = "10px";
   invertButton.innerHTML = '<i class="fa fa-exchange"></i> Invert Selection';
   invertButton.addEventListener("click", invertSelection);
@@ -139,11 +140,20 @@ async function addCopyButton() {
   quickFilterButton.innerHTML = '<i class="fa fa-bolt"></i> Quick Search';
   quickFilterButton.addEventListener("click", showQuickFilterPopup);
 
+  // Create Keyword Select button
+  const keywordSelectButton = document.createElement("button");
+  keywordSelectButton.className = "copy-magnets-button keyword-select-button";
+  keywordSelectButton.style.marginRight = "10px";
+  keywordSelectButton.innerHTML =
+    '<i class="fa fa-check-square"></i> Keyword Select';
+  keywordSelectButton.addEventListener("click", showKeywordSelectPopup);
+
   buttonContainer.appendChild(copyButton);
   buttonContainer.appendChild(copyAllButton);
   buttonContainer.appendChild(downloadButton);
   buttonContainer.appendChild(downloadAllButton);
   buttonContainer.appendChild(invertButton);
+  buttonContainer.appendChild(keywordSelectButton);
   buttonContainer.appendChild(clearButton);
   buttonContainer.appendChild(selectionCounter);
   buttonContainer.appendChild(quickFilterButton);
@@ -338,7 +348,7 @@ function showNotification(message, isSuccess = true) {
 
   container.appendChild(notification);
 
-  // Force browser to process the element before animation
+  // Force firefox to process the element before animation
   notification.offsetHeight;
 
   // Show the notification with a slide-in animation
@@ -738,12 +748,17 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Fixed bug where disabling "Show Button Controls" didn't properly remove checkbox columns<br>
-        • Fixed bug where re-enabling "Show Button Controls" caused duplicate AT and Magnet columns
+        • Added clear explanation of what the keyword filter does<br>
+        • Added a Keyword Select button to quickly select all torrents with a specific keyword<br>
+        • Added a Changelog page to easily see what's new in each version<br>
+        • Fixed bug where filter-related notifications did not respect the Show Notifications setting
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
         <button class="changelog-button dont-show">Don't show again</button>
+      </div>
+      <div class="changelog-footer">
+        <a href="/changelog" style="color: #337ab7; text-decoration: underline; font-size: 14px;">View changelog page</a>
       </div>
     `;
 
@@ -1027,7 +1042,7 @@ async function handleSettingChange(setting, value) {
           }, 300);
         } else {
           quickFilterButton.style.display = "block";
-          // Force browser to process the display change
+          // Force firefox to process the display change
           quickFilterButton.offsetHeight;
           quickFilterButton.classList.remove("hiding");
         }
@@ -1084,12 +1099,12 @@ async function handleSettingChange(setting, value) {
       });
 
       // Show notification only if dead torrents filter was disabled
-      if (!value) {
+      if (!value && prefs.showFilterNotifications) {
         showNotification("Dead torrents filter disabled", true);
       }
       break;
     case "keywordFilterEnabled":
-      filterByKeywords();
+      filterByKeywords(true); // Pass true to force notification
       break;
     case "showFilterNotifications":
       // Implementation for showFilterNotifications setting
@@ -1107,6 +1122,21 @@ async function handleSettingChange(setting, value) {
       break;
     case "fileSizeRange":
       filterByFileSize();
+      break;
+    case "showChangelogNav":
+      if (!value) {
+        // Find and remove the changelog nav item
+        const navList = document.querySelector(".nav.navbar-nav");
+        const changelogItem = Array.from(
+          navList?.querySelectorAll("li") || []
+        ).find((li) => li.textContent.trim() === "Changelog");
+        if (changelogItem) {
+          changelogItem.remove();
+        }
+      } else {
+        // Add the changelog nav item
+        addChangelogNavItem();
+      }
       break;
   }
 }
@@ -1774,7 +1804,7 @@ async function filterByKeywords(isInitialLoad = false) {
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "keywordsUpdated") {
     browser.storage.sync.set({ keywords: message.keywords }, () => {
-      filterByKeywords();
+      filterByKeywords(true); // Always pass true to show notifications
     });
   }
 });
@@ -1799,6 +1829,8 @@ async function initializeExtension(isInitialLoad = false) {
   filterByKeywords(isInitialLoad);
   toggleComments();
   filterByFileSize();
+  handleChangelogPage();
+  addChangelogNavItem();
 }
 
 async function addMagnetButtonToViewPage() {
@@ -1967,5 +1999,446 @@ async function filterByFileSize() {
       } by file size`,
       true
     );
+  }
+}
+
+function showKeywordSelectPopup() {
+  const popup = document.createElement("div");
+  popup.className = "quick-filter-popup"; // Reuse existing popup styles
+  popup.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    min-width: 320px;
+    max-width: 400px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  `;
+
+  const content = `
+    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Keyword Select</h3>
+    
+    <div class="filter-group" style="margin-bottom: 18px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Enter Keyword:</label>
+      <input type="text" id="keyword-select-input" class="filter-input" style="
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      ">
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button id="cancel-select" class="copy-magnets-button" style="
+        padding: 8px 16px;
+        border: none;
+        background: #337ab7;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      ">Cancel</button>
+      <button id="apply-select" class="copy-magnets-button" style="
+        padding: 8px 16px;
+        border: none;
+        background: #337ab7;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      ">Select</button>
+    </div>
+  `;
+
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.className = "quick-filter-overlay"; // Changed from "popup-overlay"
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  `;
+
+  popup.innerHTML = content;
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+  document.body.style.overflow = "hidden";
+
+  // Add hover effects and animations for inputs and buttons
+  const style = document.createElement("style");
+  style.textContent = `
+    .quick-filter-popup {
+      animation: popupFadeIn 0.3s ease;
+    }
+
+    .quick-filter-overlay {
+      animation: overlayFadeIn 0.3s ease;
+    }
+
+    @keyframes popupFadeIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes overlayFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .quick-filter-popup.hiding {
+      animation: popupFadeOut 0.3s ease;
+    }
+
+    .quick-filter-overlay.hiding {
+      animation: overlayFadeOut 0.3s ease;
+    }
+
+    @keyframes popupFadeOut {
+      from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+      }
+    }
+
+    @keyframes overlayFadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .quick-filter-popup input:focus {
+      outline: none;
+      border-color: #337ab7;
+      box-shadow: 0 0 0 3px rgba(51, 122, 183, 0.1);
+    }
+    .quick-filter-popup input:hover {
+      border-color: #337ab7;
+    }
+    #cancel-select:hover,
+    #apply-select:hover {
+      background-color: #286090;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Add dark mode styles if needed
+  if (document.body.classList.contains("dark")) {
+    popup.style.background = "#34353b";
+    popup.style.color = "#ffffff";
+    const input = popup.querySelector("input");
+    input.style.background = "#232327";
+    input.style.color = "#ffffff";
+    input.style.border = "1px solid #666";
+  }
+
+  // Handle Enter key
+  document
+    .getElementById("keyword-select-input")
+    .addEventListener("keypress", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("apply-select").click();
+      }
+    });
+
+  // Handle selection
+  document.getElementById("apply-select").addEventListener("click", () => {
+    const keyword = document
+      .getElementById("keyword-select-input")
+      .value.trim()
+      .toLowerCase();
+    if (!keyword) {
+      showNotification("Please enter a keyword to select", false);
+      return;
+    }
+
+    const rows = document.querySelectorAll("table.torrent-list tbody tr");
+    let matchCount = 0;
+
+    rows.forEach((row) => {
+      const title = getTitleFromRow(row);
+      const checkbox = row.querySelector(".magnet-checkbox");
+
+      if (title && checkbox && title.toLowerCase().includes(keyword)) {
+        checkbox.checked = true;
+        matchCount++;
+      }
+    });
+
+    if (matchCount > 0) {
+      showNotification(
+        `Selected ${matchCount} torrent${
+          matchCount === 1 ? "" : "s"
+        } matching "${keyword}"`,
+        true
+      );
+      // Update selection counter if it exists
+      const counter = document.querySelector(".magnet-selection-counter");
+      if (counter) {
+        const totalChecked = document.querySelectorAll(
+          ".magnet-checkbox:checked"
+        ).length;
+        counter.textContent = `${totalChecked} selected`;
+      }
+    } else {
+      showNotification(`No torrents found matching "${keyword}"`, false);
+    }
+
+    closePopup();
+  });
+
+  // Handle cancel and close
+  const closePopup = () => {
+    popup.classList.add("hiding");
+    overlay.classList.add("hiding");
+    document.body.style.overflow = "";
+
+    // Wait for animations to finish before removing elements
+    popup.addEventListener(
+      "animationend",
+      () => {
+        popup.remove();
+      },
+      { once: true }
+    );
+
+    overlay.addEventListener(
+      "animationend",
+      () => {
+        overlay.remove();
+      },
+      { once: true }
+    );
+  };
+
+  document
+    .getElementById("cancel-select")
+    .addEventListener("click", closePopup);
+  overlay.addEventListener("click", closePopup);
+}
+
+async function handleChangelogPage() {
+  // Only run on the changelog page
+  if (window.location.pathname !== "/changelog") return;
+
+  // Get the main container element (where the 404 message is)
+  const mainContainer = document.querySelector(".container h1")?.parentElement;
+  if (!mainContainer) return;
+
+  // Update page title
+  document.title = "Changelog :: Nyaa";
+
+  // Clear the 404 content
+  mainContainer.innerHTML = "";
+
+  // Add changelog content
+  const changelogContent = document.createElement("div");
+  changelogContent.className = "changelog-page";
+  changelogContent.innerHTML = `
+    <h1>Nyaa Enhancer Changelog</h1>
+    <div class="changelog-repo">
+      <p>This is an open source project. View the source code and contribute on 
+        <a href="https://github.com/Arad119/Nyaa-Enhancer" target="_blank" class="repo-link">
+          <i class="fa fa-github"></i> GitHub
+        </a>
+      </p>
+    </div>
+    <div class="version-entry">
+      <h2>
+        Version 1.7.0
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.7.0" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added clear explanation of what the keyword filter does</li>
+        <li>Added a Keyword Select button to quickly select all torrents with a specific keyword</li>
+        <li>Added changelog page to easily see what's new in each version</li>
+        <li>Fixed bug where filter-related notifications did not respect the Show Notifications setting</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>
+        Version 1.6.2
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.6.2" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Fixed bug where disabling "Show Button Controls" didn't properly remove checkbox columns</li>
+        <li>Fixed bug where re-enabling "Show Button Controls" caused duplicate AT and Magnet columns</li>
+      </ul>
+    </div>
+      <div class="version-entry">
+      <h2>
+        Version 1.6.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.6.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added organized categories in settings menu for easier navigation</li>
+        <li>Added new filtering options:</li>
+        <ul>
+          <li>Hide dead torrents (0 Seeders & 0 Leechers)</li>
+          <li>Filter torrents by keywords</li>
+          <li>Filter torrents by file size</li>
+        </ul>
+        <li>Added new view page features:</li>
+        <ul>
+          <li>Copy Magnet button on torrent pages</li>
+          <li>Option to hide comments</li>
+        </ul>
+        <li>Removed support for nyaa.eu domain due to compatibility issues</li>
+        <li>Renamed Quick Filter to Quick Search</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.5.0
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.5.0" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added Quick Filter feature to easily search for specific anime, encoders, quality, format, and source</li>
+        <li>Added Invert Selection button</li>
+        <li>Added ability to select everything in between two checkboxes (Shift+Click)</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.4.2
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.4.2" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Removed unnecessary downloads permission to improve security and privacy</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.4.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.4.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added rate limiting (500ms delay) between torrent downloads when using ZIP option to prevent HTTP 429 errors (Too Many Requests sent in a given amount of time)</li>
+        <li>Fixed bug where torrent files would incorrectly use comment count as filename</li>
+        <li>Fixed bug where not all torrent files would get downloaded when using ZIP option</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.4.0
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.4.0" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added Animetosho links column for supported torrents (English-translated anime)</li>
+        <li>Added Animetosho link to view page for supported torrents</li>
+        <li>Added magnet copy buttons column with one-click copying</li>
+        <li>Added toggles for all features in extension popup</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.3.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.3.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added badge indicator for supported sites</li>
+        <li>Moved toggles to the extension popup</li>
+        <li>Added changelog notification</li>
+        <li>Added changelog toggle in popup settings</li>
+        <li>Adjusted styling</li>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.2.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.2.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added Torrent File Downloads:</li>
+        <ul>
+          <li>Download selected .torrent files directly</li>
+          <li>Batch download all torrents on the page</li>
+          <li>Combine multiple downloads into a single ZIP file</li>
+          <li>Track download progress with visual notifications</li>
+        </ul>
+        <li>Added Customization Options:</li>
+        <ul>
+          <li>Choose between original or display names for downloaded torrent files</li>
+          <li>Toggle between individual or ZIP downloads</li>
+        </ul>
+      </ul>
+    </div>
+    <div class="version-entry">
+      <h2>Version 1.0.0
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.0.0" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Adds checkboxes next to each torrent entry</li>
+        <li>"Copy Selected" button to copy only checked magnet links.</li>
+        <li>"Copy All" button to copy all magnet links on the page</li>
+        <li>"Clear Selection" button to uncheck all boxes</li>
+        <li>Selection counter showing number of selected items</li>
+        <li>Toast notifications for user feedback</li>
+        <li>Support for multiple Nyaa mirror domains</li>
+      </ul>
+    </div>
+  `;
+
+  mainContainer.appendChild(changelogContent);
+}
+
+async function addChangelogNavItem() {
+  const prefs = await loadStoredPreferences();
+  if (!prefs.showChangelogNav) return;
+
+  // Find the navigation list that contains "RSS"
+  const navList = document.querySelector(".nav.navbar-nav");
+  const rssItem = Array.from(navList?.querySelectorAll("li") || []).find(
+    (li) => li.textContent.trim() === "RSS"
+  );
+
+  if (navList && rssItem) {
+    // Create new changelog list item
+    const changelogItem = document.createElement("li");
+    const changelogLink = document.createElement("a");
+    changelogLink.href = "/changelog";
+    changelogLink.textContent = "Changelog";
+    changelogItem.appendChild(changelogLink);
+
+    // Insert after the RSS item
+    rssItem.insertAdjacentElement("afterend", changelogItem);
   }
 }

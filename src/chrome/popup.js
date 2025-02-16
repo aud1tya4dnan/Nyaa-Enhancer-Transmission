@@ -57,6 +57,7 @@ chrome.storage.sync.get(
     hideComments: false,
     fileSizeFilterEnabled: false,
     fileSizeRange: "less_than_256mb",
+    showChangelogNav: true,
   },
   (items) => {
     document
@@ -95,6 +96,9 @@ chrome.storage.sync.get(
     document
       .querySelector('[data-toggle="fileSizeFilterToggle"]')
       .setAttribute("aria-checked", items.fileSizeFilterEnabled);
+    document
+      .querySelector('[data-toggle="showChangelogNavToggle"]')
+      .setAttribute("aria-checked", items.showChangelogNav);
 
     // Initialize dependent toggles state
     updateDependentToggles(items.showButtons);
@@ -235,6 +239,20 @@ document.querySelectorAll(".toggle-button").forEach((button) => {
             chrome.tabs.sendMessage(tabs[0].id, {
               type: "settingChanged",
               setting: "fileSizeFilterEnabled",
+              value: newState,
+            });
+          }
+        );
+        break;
+      case "showChangelogNavToggle":
+        setting = "showChangelogNav";
+        chrome.storage.sync.set({ [setting]: newState });
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "settingChanged",
+              setting: "showChangelogNav",
               value: newState,
             });
           }

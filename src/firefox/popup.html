@@ -15,6 +15,16 @@
 
     <div class="content-container">
       <div id="keyword-filter" class="tab-content">
+        <div class="keyword-info">
+          <p class="keyword-explanation">
+            Keywords added here will hide torrents that contain these words in
+            their titles.
+          </p>
+          <p class="keyword-hint">
+            ⚠️ To activate filtering, enable "Enable keyword filtering" in the
+            Settings tab.
+          </p>
+        </div>
         <div class="keyword-input-container">
           <input
             type="text"
@@ -70,7 +80,7 @@
           </div>
 
           <div class="setting-item">
-            <span>Show Quick Filter Button</span>
+            <span>Show Quick Search Button</span>
             <div class="toggle-container">
               <button class="toggle-button" data-toggle="showQuickFilterToggle">
                 <span class="toggle-indicator"></span>
@@ -95,6 +105,18 @@
         <div class="settings-category">
           <h3 class="category-title">Filter Settings</h3>
           <div class="setting-item">
+            <span>Show filter notifications</span>
+            <div class="toggle-container">
+              <button
+                class="toggle-button"
+                data-toggle="showFilterNotificationsToggle"
+              >
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
             <span>Hide dead torrents (0 S/L)</span>
             <div class="toggle-container">
               <button
@@ -110,18 +132,6 @@
             <span>Enable keyword filtering</span>
             <div class="toggle-container">
               <button class="toggle-button" data-toggle="keywordFilterToggle">
-                <span class="toggle-indicator"></span>
-              </button>
-            </div>
-          </div>
-
-          <div class="setting-item">
-            <span>Show filter notifications</span>
-            <div class="toggle-container">
-              <button
-                class="toggle-button"
-                data-toggle="showFilterNotificationsToggle"
-              >
                 <span class="toggle-indicator"></span>
               </button>
             </div>
@@ -183,7 +193,19 @@
           </div>
 
           <div class="setting-item">
-            <span>Show Changelogs</span>
+            <span>Add Changelog Link to Navbar</span>
+            <div class="toggle-container">
+              <button
+                class="toggle-button"
+                data-toggle="showChangelogNavToggle"
+              >
+                <span class="toggle-indicator"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <span>Show Changelogs Popup</span>
             <div class="toggle-container">
               <button class="toggle-button" data-toggle="changelogToggle">
                 <span class="toggle-indicator"></span>
