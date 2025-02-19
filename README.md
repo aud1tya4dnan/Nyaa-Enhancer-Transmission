@@ -98,7 +98,7 @@ To install the extension in your browser, follow these steps.
 
 ### Installation
 
-**Chrome Web Store (1.6.2, 1.7.0 update currently pending):**  
+**Chrome Web Store (up-to-date at 1.7.0):**  
 <a href="https://chromewebstore.google.com/detail/nyaa-enhancer/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
 </a>    
