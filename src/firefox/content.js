@@ -748,10 +748,7 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added clear explanation of what the keyword filter does<br>
-        • Added a Keyword Select button to quickly select all torrents with a specific keyword<br>
-        • Added a Changelog page to easily see what's new in each version<br>
-        • Fixed bug where filter-related notifications did not respect the Show Notifications setting
+        • Fixed bug where the selection counter wasn't updating when using the "Invert Selection" button
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -1206,6 +1203,15 @@ function invertSelection() {
       if (checkbox.checked) invertedCount++;
     }
   });
+
+  // Update the selection counter
+  const selectionCounter = document.querySelector(".magnet-selection-counter");
+  if (selectionCounter) {
+    const checkedBoxes = document.querySelectorAll(
+      ".magnet-checkbox:checked"
+    ).length;
+    selectionCounter.textContent = `${checkedBoxes} selected`;
+  }
 
   showNotification(
     `Selection inverted (${invertedCount} items selected)`,
@@ -2266,6 +2272,17 @@ async function handleChangelogPage() {
           <i class="fa fa-github"></i> GitHub
         </a>
       </p>
+    </div>
+    <div class="version-entry">
+      <h2>
+        Version 1.7.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.7.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Fixed bug where the selection counter wasn't updating when using the "Invert Selection" button</li>
+      </ul>
     </div>
     <div class="version-entry">
       <h2>
