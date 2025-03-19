@@ -98,7 +98,7 @@ To install the extension in your browser, follow these steps.
 
 ### Installation
 
-**Chrome Web Store (up-to-date at 1.7.0, pending update):**  
+**Chrome Web Store (up-to-date at 1.7.1):**  
 <a href="https://chromewebstore.google.com/detail/nyaa-enhancer/donibkpnifppkihgmnoocogmmbbocpdd" target="_blank">
  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/HRs9MPufa1J1h5glNhut.png" alt="Chrome Web Store" height="50px" >
 </a>    
@@ -110,7 +110,7 @@ To install the extension in your browser, follow these steps.
 </a>    
   
 
-**Edge Add-Ons Store (up-to-date at 1.7.0, pending update):**  
+**Edge Add-Ons Store (up-to-date at 1.7.1):**  
 <a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-enhancer/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
