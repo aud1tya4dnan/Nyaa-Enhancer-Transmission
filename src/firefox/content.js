@@ -559,6 +559,11 @@ function createProgressNotification() {
   return notification;
 }
 
+function sanitizeFilename(filename) {
+  // Replace any of the invalid characters with an underscore
+  return filename.replace(/[<>:"/\\|?*]/g, "_");
+}
+
 // Function to download torrents and package them into a ZIP file
 // torrents: Array of torrent objects with url and filename
 // zipName: Name of the output ZIP file
@@ -600,9 +605,9 @@ async function downloadTorrentsAsZip(torrents, zipName) {
         const blob = await response.blob();
         const base64Data = await blobToBase64(blob);
 
-        // Use appropriate filename based on stored preference
+        // Use appropriate filename based on stored preference and sanitize it
         const filename = prefs.useDisplayName
-          ? torrent.filename + ".torrent"
+          ? sanitizeFilename(torrent.filename) + ".torrent"
           : torrent.url.split("/").pop();
 
         // Add file to ZIP using base64
@@ -748,7 +753,8 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Fixed bug where the selection counter wasn't updating when using the "Invert Selection" button
+        • Fixed bug where forward slash (/) in filenames would create unwanted subfolders in ZIP downloads<br>
+        • Fixed potential download issues if some torrent names would have Windows-incompatible characters (like :, *, ?, ", etc.)
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -2272,6 +2278,18 @@ async function handleChangelogPage() {
           <i class="fa fa-github"></i> GitHub
         </a>
       </p>
+    </div>
+    <div class="version-entry">
+      <h2>
+        Version 1.7.2
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.7.2" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Fixed bug where forward slash (/) in filenames would create unwanted subfolders in ZIP downloads</li>
+        <li>Fixed potential download issues if some torrent names would have Windows-incompatible characters (like :, *, ?, ", etc.)</li>
+      </ul>
     </div>
     <div class="version-entry">
       <h2>
