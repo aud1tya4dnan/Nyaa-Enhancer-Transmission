@@ -73,7 +73,6 @@ async function addCopyButton() {
   buttonContainer.style.fontWeight = "500";
 
   // Create the "Copy Selected" button
-  // Create the "Copy Selected" button
   // This copies magnet links of checked items
   const copyButton = document.createElement("button");
   copyButton.className = "copy-magnets-button";
@@ -754,10 +753,7 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Added a User Monitoring system to track new uploads from your favorite contributors<br>
-        • Monitor button on user pages lets you track when they upload new torrents<br>
-        • Notification sidebar with updates appears on the left edge of the screen<br>
-        • Enhanced Monitored Users tab in the extension popup for easy management
+        • Fixed sidebar layout to maintain consistent height during state changes
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -2303,7 +2299,18 @@ async function handleChangelogPage() {
         </a>
       </p>
     </div>
-        <div class="version-entry">
+    <div class="version-entry">
+      <h2>
+        Version 1.8.1
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.8.1" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Fixed sidebar layout to maintain consistent height during state changes</li>
+      </ul>
+    </div>
+    <div class="version-entry">
       <h2>
         Version 1.8.0
         <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.8.0" target="_blank" class="version-link">
@@ -2607,25 +2614,44 @@ async function addMonitorButton() {
 
 // Function to check for new uploads from monitored users when on the homepage
 async function checkMonitoredUsers() {
-  // Show sidebar everywhere on nyaa
+  // Get user preferences
   const prefs = await loadStoredPreferences();
   if (!prefs.monitoredUsers || prefs.monitoredUsers.length === 0) return;
 
-  // Create a sidebar for notifications if it doesn't exist
-  let notificationSidebar = document.querySelector(".monitored-users-sidebar");
+  // Create or update the sidebar
+  const sidebar = createOrUpdateSidebar();
+
+  // Show loading state
+  showSidebarLoadingState(sidebar);
+
+  // Check for updates
+  const { updatesFound, pendingUpdates, updatedUsers } = await checkForUpdates(
+    prefs.monitoredUsers
+  );
+
+  // Update the sidebar content
+  updateSidebarContent(sidebar, updatesFound, pendingUpdates, updatedUsers);
+
+  // Save the updated user data
+  chrome.storage.sync.set({ monitoredUsers: updatedUsers });
+}
+
+// Creates the sidebar if it doesn't exist, or returns the existing one
+function createOrUpdateSidebar() {
+  let sidebar = document.querySelector(".monitored-users-sidebar");
   let isNewSidebar = false;
 
-  if (!notificationSidebar) {
+  if (!sidebar) {
     isNewSidebar = true;
-    notificationSidebar = document.createElement("div");
-    notificationSidebar.className = "monitored-users-sidebar";
-    notificationSidebar.style.cssText = `
+    sidebar = document.createElement("div");
+    sidebar.className = "monitored-users-sidebar";
+    sidebar.style.cssText = `
       position: fixed;
       left: 0;
       top: 50%;
       transform: translateY(-50%);
       width: 260px;
-      min-height: 200px;
+      min-height: 300px;
       max-height: 80vh;
       background-color: #303030;
       color: #ffffff;
@@ -2640,21 +2666,20 @@ async function checkMonitoredUsers() {
       overflow: hidden;
     `;
 
-    document.body.appendChild(notificationSidebar);
+    document.body.appendChild(sidebar);
 
     // Add hover effect
-    notificationSidebar.addEventListener("mouseenter", () => {
-      notificationSidebar.style.transform = "translateX(0) translateY(-50%)";
+    sidebar.addEventListener("mouseenter", () => {
+      sidebar.style.transform = "translateX(0) translateY(-50%)";
     });
 
-    notificationSidebar.addEventListener("mouseleave", () => {
-      notificationSidebar.style.transform =
-        "translateX(-240px) translateY(-50%)";
+    sidebar.addEventListener("mouseleave", () => {
+      sidebar.style.transform = "translateX(-240px) translateY(-50%)";
     });
   }
 
   // Clear existing content
-  notificationSidebar.innerHTML = "";
+  sidebar.innerHTML = "";
 
   // Create a tab indicator
   const tabIndicator = document.createElement("div");
@@ -2677,9 +2702,9 @@ async function checkMonitoredUsers() {
     font-size: 14px;
   `;
   tabIndicator.textContent = "Monitored Users";
-  notificationSidebar.appendChild(tabIndicator);
+  sidebar.appendChild(tabIndicator);
 
-  // Add notification dot (red by default, turns green when updates are found)
+  // Add notification dot
   const notificationDot = document.createElement("div");
   notificationDot.className = "notification-dot";
   notificationDot.style.cssText = `
@@ -2694,28 +2719,47 @@ async function checkMonitoredUsers() {
   `;
   tabIndicator.appendChild(notificationDot);
 
-  // Create the sidebar content wrapper
+  // Create content wrapper with fixed height
   const contentWrapper = document.createElement("div");
   contentWrapper.className = "sidebar-content";
   contentWrapper.style.cssText = `
     flex: 1;
-    padding: 15px 30px 5px 15px;
-    overflow: hidden; /* Hide overflow during loading */
+    padding: 15px 30px 15px 15px;
     position: relative;
     background-color: transparent;
     color: #ffffff;
+    min-height: 300px;
+    max-height: calc(80vh - 40px);
+    overflow-y: auto;
+    overflow-x: hidden;
   `;
-  notificationSidebar.appendChild(contentWrapper);
+  sidebar.appendChild(contentWrapper);
 
-  // Create the loading layout - centered vertically and horizontally
+  return sidebar;
+}
+
+// Shows loading state in the sidebar
+function showSidebarLoadingState(sidebar) {
+  const contentWrapper = sidebar.querySelector(".sidebar-content");
+
+  // Create placeholder layout with fixed dimensions
+  const placeholderLayout = document.createElement("div");
+  placeholderLayout.className = "sidebar-placeholder-layout";
+  placeholderLayout.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+  `;
+
+  // Create the loading layout
   const loadingContainer = document.createElement("div");
+  loadingContainer.className = "sidebar-loading-container";
   loadingContainer.style.cssText = `
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 150px;
-    width: 100%;
+    flex: 1;
   `;
 
   // Add loading indicator
@@ -2731,22 +2775,29 @@ async function checkMonitoredUsers() {
   loadingIndicator.innerHTML =
     '<i class="fa fa-refresh fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>Checking for updates...';
 
+  // Create placeholder for refresh button to maintain layout
+  const buttonPlaceholder = document.createElement("div");
+  buttonPlaceholder.style.cssText = `
+    height: 38px;
+    width: 100%;
+    margin-top: 10px;
+  `;
+
   loadingContainer.appendChild(loadingIndicator);
-  contentWrapper.appendChild(loadingContainer);
+  placeholderLayout.appendChild(loadingContainer);
+  placeholderLayout.appendChild(buttonPlaceholder);
+  contentWrapper.appendChild(placeholderLayout);
+}
 
-  // For new sidebar, ensure it displays with proper initial height
-  if (isNewSidebar) {
-    notificationSidebar.style.height = "auto";
-  }
-
-  // Collect updates during the check
+// Checks for updates from monitored users
+async function checkForUpdates(monitoredUsers) {
   let updatesFound = false;
-  let updatedUsers = [...prefs.monitoredUsers];
+  let updatedUsers = [...monitoredUsers];
   let pendingUpdates = [];
 
   // Check each monitored user for updates
-  for (let i = 0; i < prefs.monitoredUsers.length; i++) {
-    const user = prefs.monitoredUsers[i];
+  for (let i = 0; i < monitoredUsers.length; i++) {
+    const user = monitoredUsers[i];
     try {
       const response = await fetch(user.url);
       const text = await response.text();
@@ -2793,81 +2844,122 @@ async function checkMonitoredUsers() {
     }
   }
 
-  // Create and prepare the content before removing the loading indicator
-  // This prepares the entire layout offscreen first
+  return { updatesFound, pendingUpdates, updatedUsers };
+}
+
+// Updates the sidebar content based on the updates check
+function updateSidebarContent(
+  sidebar,
+  updatesFound,
+  pendingUpdates,
+  updatedUsers
+) {
+  const contentWrapper = sidebar.querySelector(".sidebar-content");
+  const tabIndicator = sidebar.querySelector(".sidebar-tab");
+  const notificationDot = tabIndicator.querySelector(".notification-dot");
+
+  // Clear existing content
+  contentWrapper.innerHTML = "";
+
+  // Create content container
   const contentContainer = document.createElement("div");
+  contentContainer.className = "sidebar-content-container";
   contentContainer.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
     width: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-    visibility: hidden;
+    overflow-x: hidden;
   `;
 
-  // Remove header and start directly with content
-  // Create list for notifications
-  const notificationList = document.createElement("ul");
-  notificationList.style.cssText = `
-    margin: 10px 0 0 0;
-    padding: 0 0 0 20px;
-    font-size: 14px;
-    min-height: 50px;
-    word-break: break-word;
-    background-color: transparent;
-    color: #ffffff;
-    list-style-position: outside;
+  // Create scrollable area for updates or empty state
+  const scrollableArea = document.createElement("div");
+  scrollableArea.className = "sidebar-scrollable-area";
+  scrollableArea.style.cssText = `
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
   `;
-  contentContainer.appendChild(notificationList);
 
-  // Add the collected updates
-  for (const update of pendingUpdates) {
-    // Create notification list item
-    const listItem = document.createElement("li");
-    listItem.style.marginBottom = "10px";
-    listItem.style.wordBreak = "break-word";
-    listItem.style.backgroundColor = "transparent";
-    listItem.style.color = "#ffffff";
-
-    // Create the user link
-    const userLink = document.createElement("a");
-    userLink.href = update.url;
-    userLink.textContent = update.username;
-    userLink.style.cssText = `
-      font-weight: bold;
-      color: #5cb8ff;
-      text-decoration: none;
+  if (updatesFound) {
+    // Create list for notifications
+    const notificationList = document.createElement("ul");
+    notificationList.style.cssText = `
+      margin: 10px 0 0 0;
+      padding: 0 0 0 20px;
+      font-size: 14px;
+      min-height: 50px;
+      word-break: break-word;
+      background-color: transparent;
+      color: #ffffff;
+      list-style-position: outside;
     `;
 
-    userLink.addEventListener("mouseenter", () => {
-      userLink.style.textDecoration = "underline";
-    });
+    // Add the collected updates
+    for (const update of pendingUpdates) {
+      // Create notification list item
+      const listItem = document.createElement("li");
+      listItem.style.marginBottom = "10px";
+      listItem.style.wordBreak = "break-word";
+      listItem.style.backgroundColor = "transparent";
+      listItem.style.color = "#ffffff";
 
-    userLink.addEventListener("mouseleave", () => {
-      userLink.style.textDecoration = "none";
-    });
+      // Create the user link
+      const userLink = document.createElement("a");
+      userLink.href = update.url;
+      userLink.textContent = update.username;
+      userLink.style.cssText = `
+        font-weight: bold;
+        color: #5cb8ff;
+        text-decoration: none;
+      `;
 
-    listItem.appendChild(userLink);
-    listItem.appendChild(
-      document.createTextNode(
-        ` has uploaded ${update.newTorrents} new torrent${
-          update.newTorrents > 1 ? "s" : ""
-        }`
-      )
-    );
+      userLink.addEventListener("mouseenter", () => {
+        userLink.style.textDecoration = "underline";
+      });
 
-    notificationList.appendChild(listItem);
-  }
+      userLink.addEventListener("mouseleave", () => {
+        userLink.style.textDecoration = "none";
+      });
 
-  // If no updates, show a message
-  if (!updatesFound) {
-    // Create a container to enable vertical centering
+      listItem.appendChild(userLink);
+      listItem.appendChild(
+        document.createTextNode(
+          ` has uploaded ${update.newTorrents} new torrent${
+            update.newTorrents > 1 ? "s" : ""
+          }`
+        )
+      );
+
+      notificationList.appendChild(listItem);
+    }
+
+    scrollableArea.appendChild(notificationList);
+
+    // Update visual indicators
+    notificationDot.style.backgroundColor = "#4caf50"; // Green for updates
+
+    // Make tab pulse to draw attention
+    tabIndicator.style.animation = "pulse 2s infinite";
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes pulse {
+        0% { background-color: #337ab7; }
+        50% { background-color: #ff5252; }
+        100% { background-color: #337ab7; }
+      }
+    `;
+    document.head.appendChild(style);
+  } else {
+    // No updates - show empty state
     const emptyStateContainer = document.createElement("div");
     emptyStateContainer.style.cssText = `
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 120px;
-      width: 100%;
+      flex: 1;
+      min-height: 200px;
     `;
 
     const noUpdatesMsg = document.createElement("p");
@@ -2882,16 +2974,26 @@ async function checkMonitoredUsers() {
     noUpdatesMsg.textContent = "No new updates from monitored users";
 
     emptyStateContainer.appendChild(noUpdatesMsg);
-    contentContainer.appendChild(emptyStateContainer);
-  } else {
-    // Add a dismiss button when updates are found
+    scrollableArea.appendChild(emptyStateContainer);
+  }
+
+  contentContainer.appendChild(scrollableArea);
+
+  // Add a button container for both buttons - always present
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.cssText = `
+    padding: 0px 0;
+    margin-top: auto;
+    padding-right: 25px; /* Add padding to prevent overlap with the blue sidebar tab */
+  `;
+
+  if (updatesFound) {
+    // Add a dismiss button first when updates are found
     const dismissButton = document.createElement("button");
     dismissButton.className = "copy-magnets-button dismiss-button";
     dismissButton.style.cssText = `
-      width: calc(100% - 10px);
-      margin-top: 10px;
-      margin-bottom: 5px;
-      padding: 5px 10px;
+      width: 100%;
+      padding: 8px 10px;
       font-size: 12px;
       background-color: #f44336;
       color: white;
@@ -2899,6 +3001,7 @@ async function checkMonitoredUsers() {
       border-radius: 4px;
       cursor: pointer;
       box-shadow: none;
+      margin-bottom: 10px;
     `;
     dismissButton.innerHTML = '<i class="fa fa-check"></i> Dismiss Updates';
     dismissButton.addEventListener("click", async () => {
@@ -2912,32 +3015,27 @@ async function checkMonitoredUsers() {
       chrome.storage.sync.set({ monitoredUsers: dismissedUsers });
 
       // Reset the notification dot to red
-      const notificationDot = tabIndicator.querySelector(".notification-dot");
-      if (notificationDot) {
-        notificationDot.style.backgroundColor = "#ff5252"; // Red
-      }
+      notificationDot.style.backgroundColor = "#ff5252"; // Red
 
       // Stop the tab pulsing animation
       tabIndicator.style.animation = "none";
 
-      // Replace content
-      checkMonitoredUsers();
-
       // Show notification that updates were dismissed
       showNotification("Updates dismissed", true);
+
+      // Refresh the sidebar
+      checkMonitoredUsers();
     });
 
-    contentContainer.appendChild(dismissButton);
+    buttonContainer.appendChild(dismissButton);
   }
 
-  // Add a refresh button
+  // Add the refresh button
   const refreshButton = document.createElement("button");
   refreshButton.className = "copy-magnets-button";
   refreshButton.style.cssText = `
-    width: calc(100% - 10px);
-    margin-top: 10px;
-    margin-bottom: 10px;
-    padding: 5px 10px;
+    width: 100%;
+    padding: 8px 10px;
     font-size: 12px;
     background-color: #337ab7;
     color: white;
@@ -2959,57 +3057,9 @@ async function checkMonitoredUsers() {
     await checkMonitoredUsers();
   });
 
-  contentContainer.appendChild(refreshButton);
+  buttonContainer.appendChild(refreshButton);
+  contentContainer.appendChild(buttonContainer);
 
-  // If there are updates, add a visual indicator to the tab
-  if (updatesFound) {
-    // Update the notification dot to green
-    const notificationDot = tabIndicator.querySelector(".notification-dot");
-    if (notificationDot) {
-      notificationDot.style.backgroundColor = "#4caf50"; // Green for updates
-    }
-
-    // Also make tab pulse to draw attention
-    tabIndicator.style.animation = "pulse 2s infinite";
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes pulse {
-        0% { background-color: #337ab7; }
-        50% { background-color: #ff5252; }
-        100% { background-color: #337ab7; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Temporarily add the container to the wrapper to calculate its height
+  // Add the content container to the wrapper
   contentWrapper.appendChild(contentContainer);
-
-  // Calculate the height that will be needed
-  const contentHeight = contentContainer.offsetHeight;
-
-  // Remove the container temporarily
-  contentWrapper.removeChild(contentContainer);
-
-  // Remove loading container
-  contentWrapper.removeChild(loadingContainer);
-
-  // Set fixed height for the wrapper based on calculated content height
-  contentWrapper.style.height = `${contentHeight}px`;
-
-  // Make the content container visible and position it correctly
-  contentContainer.style.position = "static";
-  contentContainer.style.visibility = "visible";
-
-  // Add the content container back
-  contentWrapper.appendChild(contentContainer);
-
-  // After a slight delay, enable overflow
-  setTimeout(() => {
-    contentWrapper.style.overflow = "auto";
-    contentWrapper.style.height = "auto";
-  }, 100);
-
-  // Save the updated user data
-  chrome.storage.sync.set({ monitoredUsers: updatedUsers });
 }
