@@ -370,3 +370,177 @@ document.getElementById("sizeRangeSelect").addEventListener("change", (e) => {
     });
   });
 });
+
+// Monitored Users Functions
+function displayMonitoredUsers(monitoredUsers) {
+  const usersList = document.getElementById("monitored-users-list");
+  usersList.innerHTML = "";
+
+  if (!monitoredUsers || monitoredUsers.length === 0) {
+    const emptyMessage = document.createElement("p");
+    emptyMessage.className = "empty-list-message";
+    emptyMessage.textContent = "You are not monitoring any users yet.";
+    emptyMessage.style.fontStyle = "italic";
+    emptyMessage.style.color = "#888";
+    emptyMessage.style.textAlign = "center";
+    emptyMessage.style.margin = "20px 0";
+    usersList.appendChild(emptyMessage);
+    return;
+  }
+
+  monitoredUsers.forEach((user) => {
+    const item = document.createElement("div");
+    item.className = "monitored-user-item";
+    item.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      background-color: #2a2a2a;
+      transition: background-color 0.3s ease;
+    `;
+
+    // Calculate time since last check
+    const lastChecked = new Date(user.lastChecked);
+    const now = new Date();
+    const diffMs = now - lastChecked;
+    const diffMins = Math.round(diffMs / 60000);
+    const timeAgo =
+      diffMins < 60
+        ? `${diffMins} min${diffMins !== 1 ? "s" : ""} ago`
+        : `${Math.round(diffMins / 60)} hour${
+            Math.round(diffMins / 60) !== 1 ? "s" : ""
+          } ago`;
+
+    // Show if there are new torrents
+    const hasNewTorrents = user.torrentCount > (user.lastDismissedCount || 0);
+    const newTorrentsCount = hasNewTorrents
+      ? user.torrentCount - (user.lastDismissedCount || 0)
+      : 0;
+
+    // Create user info section
+    const userInfo = document.createElement("div");
+    userInfo.className = "user-info";
+    userInfo.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    `;
+
+    // Create username with link
+    const usernameLink = document.createElement("a");
+    usernameLink.href = user.url;
+    usernameLink.target = "_blank";
+    usernameLink.textContent = user.username;
+    usernameLink.style.cssText = `
+      font-weight: 500;
+      color: #337ab7;
+      text-decoration: none;
+      margin-bottom: 2px;
+    `;
+    usernameLink.addEventListener("mouseenter", () => {
+      usernameLink.style.textDecoration = "underline";
+    });
+    usernameLink.addEventListener("mouseleave", () => {
+      usernameLink.style.textDecoration = "none";
+    });
+
+    // Create stats container
+    const statsContainer = document.createElement("div");
+    statsContainer.style.cssText = `
+      display: flex;
+      font-size: 12px;
+      color: #919191;
+    `;
+
+    // Total torrents count
+    const totalTorrents = document.createElement("span");
+    totalTorrents.textContent = `${user.torrentCount} torrents`;
+    totalTorrents.style.marginRight = "10px";
+    statsContainer.appendChild(totalTorrents);
+
+    // New uploads indicator
+    if (hasNewTorrents) {
+      const newTorrents = document.createElement("span");
+      newTorrents.textContent = `${newTorrentsCount} new`;
+      newTorrents.style.cssText = `
+        color: #4caf50;
+        font-weight: bold;
+        margin-right: 10px;
+      `;
+      statsContainer.appendChild(newTorrents);
+    }
+
+    // Last checked time
+    const lastCheckedEl = document.createElement("span");
+    lastCheckedEl.textContent = `Checked ${timeAgo}`;
+    lastCheckedEl.style.fontStyle = "italic";
+    statsContainer.appendChild(lastCheckedEl);
+
+    // Assemble user info
+    userInfo.appendChild(usernameLink);
+    userInfo.appendChild(statsContainer);
+
+    // Create button container
+    const buttonContainer = document.createElement("div");
+
+    // Create unmonitor button
+    const unmonitorBtn = document.createElement("button");
+    unmonitorBtn.className = "keyword-remove unmonitor-btn";
+    unmonitorBtn.textContent = "Unmonitor";
+    unmonitorBtn.addEventListener("click", () => {
+      unmonitorUser(user.username);
+    });
+
+    // Add elements to item
+    buttonContainer.appendChild(unmonitorBtn);
+    item.appendChild(userInfo);
+    item.appendChild(buttonContainer);
+    usersList.appendChild(item);
+  });
+}
+
+function unmonitorUser(username) {
+  browser.storage.sync.get({ monitoredUsers: [] }, (items) => {
+    const monitoredUsers = items.monitoredUsers.filter(
+      (user) => user.username !== username
+    );
+    browser.storage.sync.set({ monitoredUsers }, () => {
+      displayMonitoredUsers(monitoredUsers);
+
+      // Notify content script to update the monitoring list
+      browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        browser.tabs.sendMessage(tabs[0].id, {
+          type: "monitoredUsersUpdated",
+          monitoredUsers,
+        });
+      });
+    });
+  });
+}
+
+function unmonitorAllUsers() {
+  browser.storage.sync.set({ monitoredUsers: [] }, () => {
+    displayMonitoredUsers([]);
+
+    // Notify content script to update the monitoring list
+    browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      browser.tabs.sendMessage(tabs[0].id, {
+        type: "monitoredUsersUpdated",
+        monitoredUsers: [],
+      });
+    });
+  });
+}
+
+// Initialize the monitored users list
+browser.storage.sync.get({ monitoredUsers: [] }, (items) => {
+  displayMonitoredUsers(items.monitoredUsers);
+});
+
+// Add unmonitor all event listener
+document
+  .getElementById("unmonitor-all-users")
+  .addEventListener("click", unmonitorAllUsers);

@@ -304,3 +304,12 @@ body {
   margin: 0;
   line-height: 1.4;
 }
+
+.monitored-user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #2a2a2a;
+  border-radius: 4px;
+}

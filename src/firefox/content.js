@@ -33,7 +33,8 @@ function loadStoredPreferences() {
         hideComments: false,
         fileSizeFilterEnabled: false,
         fileSizeRange: "less_than_1gb",
-        showChangelogNav: true, // Add this line
+        showChangelogNav: true,
+        monitoredUsers: [], // Array of objects {username, url, torrentCount, lastChecked, lastDismissedCount}
       },
       (items) => {
         resolve(items);
@@ -348,7 +349,7 @@ function showNotification(message, isSuccess = true) {
 
   container.appendChild(notification);
 
-  // Force firefox to process the element before animation
+  // Force Firefox to process the element before animation
   notification.offsetHeight;
 
   // Show the notification with a slide-in animation
@@ -753,8 +754,10 @@ async function showChangelog() {
         <span class="changelog-version">v${currentVersion}</span>
       </div>
       <div class="changelog-content">
-        • Fixed bug where forward slash (/) in filenames would create unwanted subfolders in ZIP downloads<br>
-        • Fixed potential download issues if some torrent names would have Windows-incompatible characters (like :, *, ?, ", etc.)
+        • Added a User Monitoring system to track new uploads from your favorite contributors<br>
+        • Monitor button on user pages lets you track when they upload new torrents<br>
+        • Notification sidebar with updates appears on the left edge of the screen<br>
+        • Enhanced Monitored Users tab in the extension popup for easy management
       </div>
       <div class="changelog-actions">
         <button class="changelog-button okay">Okay</button>
@@ -1045,7 +1048,7 @@ async function handleSettingChange(setting, value) {
           }, 300);
         } else {
           quickFilterButton.style.display = "block";
-          // Force firefox to process the display change
+          // Force browser to process the display change
           quickFilterButton.offsetHeight;
           quickFilterButton.classList.remove("hiding");
         }
@@ -1830,6 +1833,25 @@ if (document.readyState === "loading") {
   initializeExtension(true);
 }
 
+// Listen for extension messages
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "settingChanged") {
+    handleSettingChange(message.setting, message.value);
+  } else if (message.type === "keywordsUpdated") {
+    browser.storage.sync.set({ keywords: message.keywords }, () => {
+      filterByKeywords();
+    });
+  } else if (message.type === "monitoredUsersUpdated") {
+    // Update the monitored users and refresh the sidebar if it exists
+    browser.storage.sync.set({ monitoredUsers: message.monitoredUsers }, () => {
+      const sidebar = document.querySelector(".monitored-users-sidebar");
+      if (sidebar) {
+        checkMonitoredUsers();
+      }
+    });
+  }
+});
+
 async function initializeExtension(isInitialLoad = false) {
   addCopyButton();
   addCheckboxColumn();
@@ -1843,6 +1865,8 @@ async function initializeExtension(isInitialLoad = false) {
   filterByFileSize();
   handleChangelogPage();
   addChangelogNavItem();
+  addMonitorButton();
+  checkMonitoredUsers();
 }
 
 async function addMagnetButtonToViewPage() {
@@ -2279,6 +2303,20 @@ async function handleChangelogPage() {
         </a>
       </p>
     </div>
+        <div class="version-entry">
+      <h2>
+        Version 1.8.0
+        <a href="https://github.com/Arad119/Nyaa-Enhancer/releases/tag/v1.8.0" target="_blank" class="version-link">
+          <i class="fa fa-github"></i> View Release
+        </a>
+      </h2>
+      <ul>
+        <li>Added a User Monitoring system to track new uploads from your favorite contributors</li>
+        <li>Monitor button on user pages lets you track when they upload new torrents</li>
+        <li>Notification sidebar with updates appears on the left edge of the screen</li>
+        <li>Enhanced Monitored Users tab in the extension popup for easy management</li>
+      </ul>
+    </div>
     <div class="version-entry">
       <h2>
         Version 1.7.2
@@ -2476,4 +2514,502 @@ async function addChangelogNavItem() {
     // Insert after the RSS item
     rssItem.insertAdjacentElement("afterend", changelogItem);
   }
+}
+
+// Function to handle user monitoring
+async function addMonitorButton() {
+  // Check if we're on a user page
+  if (!window.location.pathname.startsWith("/user/")) return;
+
+  // Get the username from the URL
+  const username = window.location.pathname.split("/").pop();
+  if (!username) return;
+
+  const prefs = await loadStoredPreferences();
+
+  // Find the h3 heading with the user information
+  const userHeading = document.querySelector("h3");
+  if (!userHeading) return;
+
+  // Check for existing Monitor button
+  if (userHeading.querySelector(".monitor-button")) return;
+
+  // Find the torrent count in the page heading
+  let torrentCount = 0;
+  const text = userHeading.textContent.trim();
+  const match = text.match(/\((\d+)\)$/);
+  if (match && match[1]) {
+    torrentCount = parseInt(match[1]);
+  }
+
+  // Check if user is already monitored
+  const isMonitored = prefs.monitoredUsers.some(
+    (user) => user.username === username
+  );
+
+  // Create the "Monitor" button
+  const monitorButton = document.createElement("button");
+  monitorButton.className = "copy-magnets-button monitor-button";
+  monitorButton.style.cssText = `
+    margin-right: 10px;
+    font-size: 14px;
+    padding: 5px 10px;
+    line-height: normal;
+    height: auto;
+    vertical-align: middle;
+    display: inline-block;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    font-weight: 500;
+  `;
+
+  if (isMonitored) {
+    monitorButton.innerHTML = '<i class="fa fa-bell-slash"></i> Unmonitor';
+    monitorButton.style.backgroundColor = "#f44336";
+  } else {
+    monitorButton.innerHTML = '<i class="fa fa-bell"></i> Monitor';
+  }
+
+  monitorButton.addEventListener("click", async () => {
+    const currentPrefs = await loadStoredPreferences();
+    const userIndex = currentPrefs.monitoredUsers.findIndex(
+      (user) => user.username === username
+    );
+
+    if (userIndex === -1) {
+      // Add user to monitored list
+      currentPrefs.monitoredUsers.push({
+        username: username,
+        url: window.location.pathname,
+        torrentCount: torrentCount,
+        lastChecked: Date.now(),
+        lastDismissedCount: torrentCount, // Initialize lastDismissedCount to current count
+      });
+
+      monitorButton.innerHTML = '<i class="fa fa-bell-slash"></i> Unmonitor';
+      monitorButton.style.backgroundColor = "#f44336";
+      showNotification(`Now monitoring ${username} for new uploads`, true);
+    } else {
+      // Remove user from monitored list
+      currentPrefs.monitoredUsers.splice(userIndex, 1);
+
+      monitorButton.innerHTML = '<i class="fa fa-bell"></i> Monitor';
+      monitorButton.style.backgroundColor = "";
+      showNotification(`Stopped monitoring ${username}`, true);
+    }
+
+    // Save updated preferences
+    browser.storage.sync.set({ monitoredUsers: currentPrefs.monitoredUsers });
+  });
+
+  // Insert the Monitor button before the heading text
+  userHeading.insertBefore(monitorButton, userHeading.firstChild);
+}
+
+// Function to check for new uploads from monitored users when on the homepage
+async function checkMonitoredUsers() {
+  // Show sidebar everywhere on nyaa
+  const prefs = await loadStoredPreferences();
+  if (!prefs.monitoredUsers || prefs.monitoredUsers.length === 0) return;
+
+  // Create a sidebar for notifications if it doesn't exist
+  let notificationSidebar = document.querySelector(".monitored-users-sidebar");
+  let isNewSidebar = false;
+
+  if (!notificationSidebar) {
+    isNewSidebar = true;
+    notificationSidebar = document.createElement("div");
+    notificationSidebar.className = "monitored-users-sidebar";
+    notificationSidebar.style.cssText = `
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 260px;
+      min-height: 200px;
+      max-height: 80vh;
+      background-color: #303030;
+      color: #ffffff;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      transform: translateX(-240px) translateY(-50%);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    `;
+
+    document.body.appendChild(notificationSidebar);
+
+    // Add hover effect
+    notificationSidebar.addEventListener("mouseenter", () => {
+      notificationSidebar.style.transform = "translateX(0) translateY(-50%)";
+    });
+
+    notificationSidebar.addEventListener("mouseleave", () => {
+      notificationSidebar.style.transform =
+        "translateX(-240px) translateY(-50%)";
+    });
+  }
+
+  // Clear existing content
+  notificationSidebar.innerHTML = "";
+
+  // Create a tab indicator
+  const tabIndicator = document.createElement("div");
+  tabIndicator.className = "sidebar-tab";
+  tabIndicator.style.cssText = `
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 20px;
+    background-color: #337ab7;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+  `;
+  tabIndicator.textContent = "Monitored Users";
+  notificationSidebar.appendChild(tabIndicator);
+
+  // Add notification dot (red by default, turns green when updates are found)
+  const notificationDot = document.createElement("div");
+  notificationDot.className = "notification-dot";
+  notificationDot.style.cssText = `
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 10px;
+    height: 10px;
+    background-color: #ff5252; /* Red by default */
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+  `;
+  tabIndicator.appendChild(notificationDot);
+
+  // Create the sidebar content wrapper
+  const contentWrapper = document.createElement("div");
+  contentWrapper.className = "sidebar-content";
+  contentWrapper.style.cssText = `
+    flex: 1;
+    padding: 15px 30px 5px 15px;
+    overflow: hidden; /* Hide overflow during loading */
+    position: relative;
+    background-color: transparent;
+    color: #ffffff;
+  `;
+  notificationSidebar.appendChild(contentWrapper);
+
+  // Create the loading layout - centered vertically and horizontally
+  const loadingContainer = document.createElement("div");
+  loadingContainer.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 150px;
+    width: 100%;
+  `;
+
+  // Add loading indicator
+  const loadingIndicator = document.createElement("div");
+  loadingIndicator.className = "loading-indicator";
+  loadingIndicator.style.cssText = `
+    text-align: center;
+    padding: 20px 0;
+    font-style: italic;
+    color: #aaa;
+    background-color: transparent;
+  `;
+  loadingIndicator.innerHTML =
+    '<i class="fa fa-refresh fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>Checking for updates...';
+
+  loadingContainer.appendChild(loadingIndicator);
+  contentWrapper.appendChild(loadingContainer);
+
+  // For new sidebar, ensure it displays with proper initial height
+  if (isNewSidebar) {
+    notificationSidebar.style.height = "auto";
+  }
+
+  // Collect updates during the check
+  let updatesFound = false;
+  let updatedUsers = [...prefs.monitoredUsers];
+  let pendingUpdates = [];
+
+  // Check each monitored user for updates
+  for (let i = 0; i < prefs.monitoredUsers.length; i++) {
+    const user = prefs.monitoredUsers[i];
+    try {
+      const response = await fetch(user.url);
+      const text = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "text/html");
+
+      // Find the torrent count in the parsed page
+      const userHeading = doc.querySelector("h3");
+      if (userHeading) {
+        const headingText = userHeading.textContent.trim();
+        const match = headingText.match(/\((\d+)\)$/);
+        if (match && match[1]) {
+          const newCount = parseInt(match[1]);
+
+          // Initialize lastDismissedCount if it doesn't exist
+          const lastDismissedCount =
+            user.lastDismissedCount || user.torrentCount;
+
+          // If there are new torrents since last dismissed
+          if (newCount > lastDismissedCount) {
+            const newTorrents = newCount - lastDismissedCount;
+
+            // Store the update information
+            pendingUpdates.push({
+              username: user.username,
+              url: user.url,
+              newTorrents: newTorrents,
+            });
+
+            updatesFound = true;
+          }
+
+          // Always update the current count regardless of notification status
+          updatedUsers[i] = {
+            ...user,
+            torrentCount: newCount,
+            lastChecked: Date.now(),
+            lastDismissedCount: user.lastDismissedCount || user.torrentCount,
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking updates for ${user.username}:`, error);
+    }
+  }
+
+  // Create and prepare the content before removing the loading indicator
+  // This prepares the entire layout offscreen first
+  const contentContainer = document.createElement("div");
+  contentContainer.style.cssText = `
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    visibility: hidden;
+  `;
+
+  // Remove header and start directly with content
+  // Create list for notifications
+  const notificationList = document.createElement("ul");
+  notificationList.style.cssText = `
+    margin: 10px 0 0 0;
+    padding: 0 0 0 20px;
+    font-size: 14px;
+    min-height: 50px;
+    word-break: break-word;
+    background-color: transparent;
+    color: #ffffff;
+    list-style-position: outside;
+  `;
+  contentContainer.appendChild(notificationList);
+
+  // Add the collected updates
+  for (const update of pendingUpdates) {
+    // Create notification list item
+    const listItem = document.createElement("li");
+    listItem.style.marginBottom = "10px";
+    listItem.style.wordBreak = "break-word";
+    listItem.style.backgroundColor = "transparent";
+    listItem.style.color = "#ffffff";
+
+    // Create the user link
+    const userLink = document.createElement("a");
+    userLink.href = update.url;
+    userLink.textContent = update.username;
+    userLink.style.cssText = `
+      font-weight: bold;
+      color: #5cb8ff;
+      text-decoration: none;
+    `;
+
+    userLink.addEventListener("mouseenter", () => {
+      userLink.style.textDecoration = "underline";
+    });
+
+    userLink.addEventListener("mouseleave", () => {
+      userLink.style.textDecoration = "none";
+    });
+
+    listItem.appendChild(userLink);
+    listItem.appendChild(
+      document.createTextNode(
+        ` has uploaded ${update.newTorrents} new torrent${
+          update.newTorrents > 1 ? "s" : ""
+        }`
+      )
+    );
+
+    notificationList.appendChild(listItem);
+  }
+
+  // If no updates, show a message
+  if (!updatesFound) {
+    // Create a container to enable vertical centering
+    const emptyStateContainer = document.createElement("div");
+    emptyStateContainer.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 120px;
+      width: 100%;
+    `;
+
+    const noUpdatesMsg = document.createElement("p");
+    noUpdatesMsg.style.cssText = `
+      font-style: italic;
+      color: #aaa;
+      margin: 0;
+      text-align: center;
+      word-break: break-word;
+      background-color: transparent;
+    `;
+    noUpdatesMsg.textContent = "No new updates from monitored users";
+
+    emptyStateContainer.appendChild(noUpdatesMsg);
+    contentContainer.appendChild(emptyStateContainer);
+  } else {
+    // Add a dismiss button when updates are found
+    const dismissButton = document.createElement("button");
+    dismissButton.className = "copy-magnets-button dismiss-button";
+    dismissButton.style.cssText = `
+      width: calc(100% - 10px);
+      margin-top: 10px;
+      margin-bottom: 5px;
+      padding: 5px 10px;
+      font-size: 12px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: none;
+    `;
+    dismissButton.innerHTML = '<i class="fa fa-check"></i> Dismiss Updates';
+    dismissButton.addEventListener("click", async () => {
+      // Update lastDismissedCount to current torrentCount for all users
+      const dismissedUsers = updatedUsers.map((user) => ({
+        ...user,
+        lastDismissedCount: user.torrentCount,
+      }));
+
+      // Save the current torrent counts and dismissed state
+      browser.storage.sync.set({ monitoredUsers: dismissedUsers });
+
+      // Reset the notification dot to red
+      const notificationDot = tabIndicator.querySelector(".notification-dot");
+      if (notificationDot) {
+        notificationDot.style.backgroundColor = "#ff5252"; // Red
+      }
+
+      // Stop the tab pulsing animation
+      tabIndicator.style.animation = "none";
+
+      // Replace content
+      checkMonitoredUsers();
+
+      // Show notification that updates were dismissed
+      showNotification("Updates dismissed", true);
+    });
+
+    contentContainer.appendChild(dismissButton);
+  }
+
+  // Add a refresh button
+  const refreshButton = document.createElement("button");
+  refreshButton.className = "copy-magnets-button";
+  refreshButton.style.cssText = `
+    width: calc(100% - 10px);
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    font-size: 12px;
+    background-color: #337ab7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: none;
+  `;
+  refreshButton.innerHTML = '<i class="fa fa-refresh"></i> Refresh';
+  refreshButton.addEventListener("click", async () => {
+    refreshButton.disabled = true;
+    refreshButton.innerHTML =
+      '<i class="fa fa-refresh fa-spin"></i> Refreshing...';
+
+    // Save updated counts first
+    browser.storage.sync.set({ monitoredUsers: updatedUsers });
+
+    // Then check again
+    await checkMonitoredUsers();
+  });
+
+  contentContainer.appendChild(refreshButton);
+
+  // If there are updates, add a visual indicator to the tab
+  if (updatesFound) {
+    // Update the notification dot to green
+    const notificationDot = tabIndicator.querySelector(".notification-dot");
+    if (notificationDot) {
+      notificationDot.style.backgroundColor = "#4caf50"; // Green for updates
+    }
+
+    // Also make tab pulse to draw attention
+    tabIndicator.style.animation = "pulse 2s infinite";
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes pulse {
+        0% { background-color: #337ab7; }
+        50% { background-color: #ff5252; }
+        100% { background-color: #337ab7; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Temporarily add the container to the wrapper to calculate its height
+  contentWrapper.appendChild(contentContainer);
+
+  // Calculate the height that will be needed
+  const contentHeight = contentContainer.offsetHeight;
+
+  // Remove the container temporarily
+  contentWrapper.removeChild(contentContainer);
+
+  // Remove loading container
+  contentWrapper.removeChild(loadingContainer);
+
+  // Set fixed height for the wrapper based on calculated content height
+  contentWrapper.style.height = `${contentHeight}px`;
+
+  // Make the content container visible and position it correctly
+  contentContainer.style.position = "static";
+  contentContainer.style.visibility = "visible";
+
+  // Add the content container back
+  contentWrapper.appendChild(contentContainer);
+
+  // After a slight delay, enable overflow
+  setTimeout(() => {
+    contentWrapper.style.overflow = "auto";
+    contentWrapper.style.height = "auto";
+  }, 100);
+
+  // Save the updated user data
+  browser.storage.sync.set({ monitoredUsers: updatedUsers });
 }

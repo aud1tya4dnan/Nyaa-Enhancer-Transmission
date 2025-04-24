@@ -9,6 +9,9 @@
       <button class="nav-button" data-tab="keyword-filter">
         Keyword Filter
       </button>
+      <button class="nav-button" data-tab="monitored-users">
+        Monitored Users
+      </button>
       <button class="nav-button active" data-tab="settings">Settings</button>
       <button class="nav-button" data-tab="about">About</button>
     </div>
@@ -41,6 +44,62 @@
         </div>
         <div id="keywords-list" class="keywords-list">
           <!-- Keywords will be added here dynamically -->
+        </div>
+      </div>
+
+      <div id="monitored-users" class="tab-content">
+        <div class="keyword-info">
+          <p class="keyword-explanation">
+            <strong>User Monitoring</strong> lets you track new uploads from
+            your favorite uploaders.
+          </p>
+          <div class="how-to-monitor">
+            <h4 style="margin-bottom: 5px; color: #337ab7">
+              How to monitor a user:
+            </h4>
+            <ol style="margin-top: 5px; padding-left: 20px">
+              <li>
+                Visit any user's page on Nyaa (e.g.,
+                https://nyaa.si/user/username)
+              </li>
+              <li>
+                Click the
+                <strong style="color: #337ab7"
+                  ><i class="fa fa-bell"></i> Monitor</strong
+                >
+                button next to their name
+              </li>
+              <li>
+                You'll receive notifications in the sidebar to the left when
+                they upload new torrents
+              </li>
+            </ol>
+            <p style="font-style: italic; margin-top: 10px; color: #666">
+              The sidebar appears on the left edge of your screen and shows a
+              notification dot when new uploads are detected.
+            </p>
+          </div>
+        </div>
+        <div
+          class="monitored-users-header"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0 10px 0;
+          "
+        >
+          <h3 style="margin: 0; font-size: 16px">Currently Monitored</h3>
+          <button
+            id="unmonitor-all-users"
+            class="keyword-remove-all"
+            style="margin: 0"
+          >
+            Unmonitor All
+          </button>
+        </div>
+        <div id="monitored-users-list" class="keywords-list">
+          <!-- Monitored users will be added here dynamically -->
         </div>
       </div>
 
