@@ -110,7 +110,7 @@ To install the extension in your browser, follow these steps.
 </a>    
   
 
-**Edge Add-Ons Store (currently 1.7.2, pending update):**  
+**Edge Add-Ons Store (up-to-date at 1.8.1):**  
 <a href="https://microsoftedge.microsoft.com/addons/detail/nyaa-enhancer/cpkcppifogblfgbggdeljjnibjfcdakf" target="_blank">
  <img src="https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png" alt="Edge Add-Ons Store" height="50px" >
 </a>    
