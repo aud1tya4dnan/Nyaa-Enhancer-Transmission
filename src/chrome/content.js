@@ -491,23 +491,99 @@ async function downloadSelectedTorrents() {
   rows.forEach((row) => {
     const checkbox = row.querySelector(".magnet-checkbox");
     if (checkbox && checkbox.checked) {
-      const torrentLink = row.querySelector('a[href$=".torrent"]');
+      const torrentLink = row.querySelector('a[href*="magnet:"]');
       const title = getTitleFromRow(row);
       if (torrentLink && title) {
-        selectedTorrents.push({
-          url: torrentLink.href,
-          filename: title,
-        });
+        selectedTorrents.push(torrentLink.href);
       }
     }
   });
 
   // Start download process if we found any torrents
   if (selectedTorrents.length > 0) {
-    await downloadTorrents(selectedTorrents, "selected_torrents.zip");
+    magnetLinks.push(...selectedTorrents);
+    processMagnetLinks()
+    // await downloadTorrents(selectedTorrents, "selected_torrents.zip");
   } else {
     showNotification("No torrents selected!", false);
   }
+}
+
+// Barisan baru untuk menambahkan magnet ke Transmission
+const TRANSMISSION_URL = 'https://torrent.auditya.web.id/transmission/rpc';
+const magnetLinks = [];
+
+let session_id = null;
+
+function addMagnetLink(link, id) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', TRANSMISSION_URL, true);
+
+    // Set headers for authentication and session ID
+    xhr.setRequestHeader('X-Transmission-Session-Id', id);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('Successfully added:', link);
+        resolve(xhr.responseText);
+      } else {
+        console.error(`Failed to add ${link}:`, xhr.status, xhr.responseText);
+        reject(xhr.status);
+      }
+    };
+
+    xhr.onerror = function() {
+      console.error('Request failed for link:', link);
+      reject(new Error('Network Error'));
+    };
+
+    const payload = JSON.stringify({
+      method: 'torrent-add',
+      arguments: {
+        paused: false,
+        filename: link
+      }
+    });
+
+    xhr.send(payload);
+  });
+}
+
+async function processMagnetLinks() {
+  console.log('Getting session ID...');
+  const initialXhr = new XMLHttpRequest();
+  initialXhr.open('POST', TRANSMISSION_URL, true);
+  initialXhr.send();
+
+  initialXhr.onload = async function() {
+    if (initialXhr.status === 409) {
+      session_id = initialXhr.getResponseHeader('X-Transmission-Session-Id');
+      if (!session_id) {
+        console.error('Could not get session ID.');
+        return;
+      }
+      console.log('Session ID acquired. Starting to add torrents...');
+
+      for (const link of magnetLinks) {
+        try {
+          await addMagnetLink(link, session_id);
+        } catch (error) {
+          console.error('Error handling magnet link:', error);
+        }
+      }
+      console.log('Finished processing all magnet links.');
+      alert('Finished adding magnets to Transmission.');
+
+    } else {
+      console.error('Unexpected response on first request:', initialXhr.status, initialXhr.responseText);
+    }
+  };
+
+  initialXhr.onerror = function() {
+    console.error('Failed to connect to the Transmission daemon.');
+  };
 }
 
 // Function to download all torrent files on the page
