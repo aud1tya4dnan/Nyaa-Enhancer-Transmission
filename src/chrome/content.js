@@ -510,7 +510,7 @@ async function downloadSelectedTorrents() {
 }
 
 // Barisan baru untuk menambahkan magnet ke Transmission
-const TRANSMISSION_URL = 'https://torrent.auditya.web.id/transmission/rpc';
+const TRANSMISSION_URL = '';
 const magnetLinks = [];
 
 let session_id = null;
